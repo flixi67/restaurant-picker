@@ -5,7 +5,7 @@ app = Flask(__name__)
 @app.route("/")
 def home():
     return print(
-        "<h1>Restaurant Picker</h1>,
+        "<h1>Restaurant Picker</h1>",
         "Here would go the description of the app and how to use it"
     )
 
