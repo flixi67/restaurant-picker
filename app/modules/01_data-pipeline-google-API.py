@@ -5,6 +5,7 @@ import sys
 import os
 sys.path.append(os.path.abspath("app/modules/"))
 from geocode import GoogleGeocodingAPI
+from flatten_json import FlattenPlacesResponse
 from shapely.geometry import MultiPoint
 from geopy.distance import geodesic
 
@@ -64,7 +65,7 @@ response = requests.post(url, headers=headers, data=json.dumps(payload))
 if response.status_code == 200:
     print("Success! Response data:")
     print(json.dumps(response.json(), indent=2))
-    df = 
+    # here goes flattening the dataframe once we know the response fields we need.
 else:
     print(f"Error {response.status_code}: {response.text}")
 
