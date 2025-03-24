@@ -79,7 +79,7 @@ vegetarian = # 1 or 0
 # businessStatus = OPERATIONAL
 # servesVegetarianFood = true in case of vegetarian = 1
 # paymentOptions.acceptsDebitCards = true in case of card = 1
-
+# opening hours --> module that checks datetime from user inputs against the opening hours and returns open=1/0
 
 # Calculating distance from centroid
 def get_lat_lng(address):
