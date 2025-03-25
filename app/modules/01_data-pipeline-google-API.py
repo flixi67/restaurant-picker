@@ -5,10 +5,12 @@ import sys
 import os
 sys.path.append(os.path.abspath("app/modules/"))
 from geocode import GoogleGeocodingAPI
-from flatten_json import FlattenPlacesResponse
+# from openinghours import OpenNow
+# from flatten import FlattenPlacesResponse
 from shapely.geometry import MultiPoint
 from geopy.distance import geodesic
 
+# --- DATA FETCHING PIPELINE ---
 
 # API endpoint
 url = "https://places.googleapis.com/v1/places:searchNearby"
@@ -33,8 +35,8 @@ for address in locations:
     centroid = MultiPoint(points).centroid
 
 if centroid:
-    print("Centroid Latitude:", centroid["lat"])
-    print("Centroid Longitude:", centroid["lng"])
+    print("Centroid Latitude:", centroid.x)
+    print("Centroid Longitude:", centroid.y)
 
 # Request headers
 headers = {
@@ -50,8 +52,8 @@ payload = {
     "locationRestriction": {
         "circle": {
             "center": {
-                "latitude": centroid["lat"],
-                "longitude": centroid["lng"]
+                "latitude": centroid.x,
+                "longitude": centroid.y
             },
             "radius": 500.0
         }
@@ -65,21 +67,40 @@ response = requests.post(url, headers=headers, data=json.dumps(payload))
 if response.status_code == 200:
     print("Success! Response data:")
     print(json.dumps(response.json(), indent=2))
-    # here goes flattening the dataframe once we know the response fields we need.
+    df = pd.json_normalize(response.json(), record_path=["places"]) # here goes flattening the dataframe once we know the response fields we need.
 else:
     print(f"Error {response.status_code}: {response.text}")
 
-# Here goes the filtering pipeline, e.g. for card only restaurants or vegetarian options
-# fetch binaries from database and calculate sum (OR)
-# cash = # 1 or 0 (not needed for now, for the unlikely case of friends wanting to pay cash but restaurants only accept card)
-card = # 1 or 0
-vegetarian = # 1 or 0 
+# --- FILTER PIPELINE ---
 
-# FILTERS
-# businessStatus = OPERATIONAL
-# servesVegetarianFood = true in case of vegetarian = 1
-# paymentOptions.acceptsDebitCards = true in case of card = 1
-# openingHours --> module that checks datetime from user inputs against the opening hours and returns open=1/0
+card =  1 # Example list of addresses, add database fetch here
+vegetarian =  1 # Example list of addresses, add database fetch here
+datetime = "2025-03-22T14:30:00" # Example list of addresses, add database fetch here 
+
+# 1. Filter operational businesses
+df = df[df['businessStatus'] == 'OPERATIONAL']
+
+# 2. Filter vegetarian-friendly places if requested
+if vegetarian == 1 and 'servesVegetarianFood' in df.columns:
+    df = df[df['servesVegetarianFood'] == True]
+
+# 3. Filter for debit card support if requested
+if card == 1 and 'paymentOptions.acceptsDebitCards' in df.columns:
+    df = df[df['paymentOptions.acceptsDebitCards'] == True]
+
+# 4. Filter open places
+
+def check_open(row):
+    try:
+        return IsOpenNow(row['opening_hours'], datetime)
+    except:
+        return False
+
+if 'opening_hours' in df.columns:
+    df['is_open'] = df.apply(check_open, axis=1)
+    df = df[df['is_open'] == True]
+
+# --- TRANSFORM PIPELINE ---
 
 # Calculating distance from centroid
 def get_lat_lng(address):
@@ -98,3 +119,5 @@ def calc_distance(row):
     return None
 
 df['distance_from_centroid'] = df.apply(calc_distance, axis=1)
+
+df.to_csv("cleaned_data.csv")
