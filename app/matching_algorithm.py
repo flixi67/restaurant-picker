@@ -8,50 +8,13 @@ import geopandas
 
 # Function: Create and return random group code
 def create_group_code():
+    """
+    Inputs: None
+    Output: 6 digit code
+    Later: Add a list; only create a code that is not already in the list
+    """
     code = random.randint(0,6)
     return code
-
-# Function: Take latitutde and longitude, and create a tuple of coordinates
-def create_coord(lat1, long2):
-    point = (lat1, long2)
-    return point
-
-# Function: Calculate centroid location
-def calculate_centroid(*points):
-    coords = [points]
-    coords_array = np.array(coords)
-    # Calculate the average of latitudes and longitudes
-    centroid = np.mean(coords, axis=0)
-    centroid = (centroid[0], centroid[1])
-    return centroid
-
-# Function: Calculate area of radial circle from centroid
-def get_search_area():
-    # Create 'Point' object with centroid
-    centre = Point(centroid[1], centroid[0])
-    # We will need to make the radius flexible in the future
-    radius = 5
-    # Create circle with 'buffer' method from geopandas
-    circle = centre.buffer(radius / 111) # The '111' converts the radius to degrees
-    return circle
-
-# Function to filter restaurants
-def filter_restaurants(restaurants_df, centroid, radius_km):
-    # Step 1: Fast pre-filter (e.g., approximate bounding box or city)
-    min_lat, max_lat = centroid[0] - 0.1, centroid[0] + 0.1  # ~11 km rough filter
-    candidates = restaurants_df[
-        (restaurants_df.lat.between(min_lat, max_lat)) & 
-        (restaurants_df.lon.between(centroid[1] - 0.1, centroid[1] + 0.1))
-    ]
-
-    #Step 2: Convert only candidates to Shapely Points
-    candidates["geometry"] = candidates.apply(
-        lambda row: Point(row.lon, row.lat), axis=1 #Conversion to spatial objects
-    )
-
-# Step 3: Precise spatial filter
-    search_area = Point(centroid[1], centroid[0]).buffer(max_distance_km / 111)
-    return candidates[candidates.geometry.within(search_area)]
 
 # Function: Add weights to each item and calculate a composite score
 def create_weighting(list_of_items):
@@ -122,21 +85,46 @@ def propose_restaurants(candidates, group_preferences):
 
 
 
-# Function: Return restaurants within radial circle
-def get_radius_restaurants(circle):
-    # Obtain all restaurants in Berlin then turn into spatial objects
-    # Or do this without geopandas?
-    
-    
+""" ---- Functions that are no longer needed ---- """
+# Function: Take latitude and longitude, and create a tuple of coordinates
+def create_coord(lat1, long2):
+    point = (lat1, long2)
+    return point
 
-# Function: Return restaurants with weights
-def filter_restaurants(restaurants, weights_dictionary):
-    # Refer to weights dictionary
-    # Filter restaurants with weights
+# Function: Calculate centroid location
+def calculate_centroid(*points):
+    coords = [points]
+    coords_array = np.array(coords)
+    # Calculate the average of latitudes and longitudes
+    centroid = np.mean(coords, axis=0)
+    centroid = (centroid[0], centroid[1])
+    return centroid
 
+# Function: Calculate area of radial circle from centroid
+def get_search_area():
+    # Create 'Point' object with centroid
+    centre = Point(centroid[1], centroid[0])
+    # We will need to make the radius flexible in the future
+    radius = 5
+    # Create circle with 'buffer' method from geopandas
+    circle = centre.buffer(radius / 111) # The '111' converts the radius to degrees
+    return circle
 
+# Function to filter restaurants
+def filter_restaurants(restaurants_df, centroid, radius_km):
+    # Step 1: Fast pre-filter (e.g., approximate bounding box or city)
+    min_lat, max_lat = centroid[0] - 0.1, centroid[0] + 0.1  # ~11 km rough filter
+    candidates = restaurants_df[
+        (restaurants_df.lat.between(min_lat, max_lat)) & 
+        (restaurants_df.lon.between(centroid[1] - 0.1, centroid[1] + 0.1))
+    ]
 
+    #Step 2: Convert only candidates to Shapely Points
+    candidates["geometry"] = candidates.apply(
+        lambda row: Point(row.lon, row.lat), axis=1 #Conversion to spatial objects
+    )
 
-
-
+# Step 3: Precise spatial filter
+    search_area = Point(centroid[1], centroid[0]).buffer(max_distance_km / 111)
+    return candidates[candidates.geometry.within(search_area)]
 
