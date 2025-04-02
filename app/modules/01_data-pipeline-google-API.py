@@ -6,7 +6,7 @@ import os
 sys.path.append(os.path.abspath("app/modules/"))
 from geocode import GoogleGeocodingAPI
 # from openinghours import OpenNow
-# from flatten import FlattenPlacesResponse
+from flatten import FlattenPlacesResponse
 from shapely.geometry import MultiPoint
 from geopy.distance import geodesic
 
@@ -63,11 +63,15 @@ payload = {
 # Make the request
 response = requests.post(url, headers=headers, data=json.dumps(payload))
 
+# ininiate flattener
+
+flattener = FlattenPlacesResponse(full_scope=True)
+
 # Print response
 if response.status_code == 200:
     print("Success! Response data:")
     print(json.dumps(response.json(), indent=2))
-    df = pd.json_normalize(response.json(), record_path=["places"]) # here goes flattening the dataframe once we know the response fields we need.
+    df =  flattener.flatten(response.json())
 else:
     print(f"Error {response.status_code}: {response.text}")
 
@@ -78,27 +82,32 @@ vegetarian =  1 # Example list of addresses, add database fetch here
 datetime = "2025-03-22T14:30:00" # Example list of addresses, add database fetch here 
 
 # 1. Filter operational businesses
-df = df[df['businessStatus'] == 'OPERATIONAL']
+# df = df[df['businessStatus'] == 'OPERATIONAL']
 
 # 2. Filter vegetarian-friendly places if requested
 if vegetarian == 1 and 'servesVegetarianFood' in df.columns:
     df = df[df['servesVegetarianFood'] == True]
+else:
+    NameError("No information on vegetarian options in database. Not filtering for dietary restrictions, please manually check.")
 
 # 3. Filter for debit card support if requested
 if card == 1 and 'paymentOptions.acceptsDebitCards' in df.columns:
     df = df[df['paymentOptions.acceptsDebitCards'] == True]
+else:
+    NameError("No information on payment options in database. Not filtering for card payments, please manually check.")
+
 
 # 4. Filter open places
 
-def check_open(row):
-    try:
-        return IsOpenNow(row['opening_hours'], datetime)
-    except:
-        return False
+# def check_open(row):
+#     try:
+#         return IsOpenNow(row['opening_hours'], datetime)
+#     except:
+#         return False
 
-if 'opening_hours' in df.columns:
-    df['is_open'] = df.apply(check_open, axis=1)
-    df = df[df['is_open'] == True]
+# if 'opening_hours' in df.columns:
+#     df['is_open'] = df.apply(check_open, axis=1)
+#     df = df[df['is_open'] == True]
 
 # --- TRANSFORM PIPELINE ---
 
@@ -120,4 +129,4 @@ def calc_distance(row):
 
 df['distance_from_centroid'] = df.apply(calc_distance, axis=1)
 
-df.to_csv("cleaned_data.csv")
+df.to_csv("flattened_data.csv")
