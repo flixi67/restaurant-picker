@@ -15,13 +15,35 @@
         </div>
         <div class="col-md-4">
             <label class="form-label">Location</label>
-            <input type="text" class="form-control" name="memberloc">
+            <input type="text" class="form-control" name="memberloc" required>
         </div>
     </div>
     <div class="row g-3 mt-3">
         <div class="col-md-3">
             <label class="form-label">Budget</label>
-            <input type="number" class="form-control" name="memberbudget">
+            <input type="number" class="form-control" name="memberbudget" min="0">
+            <select name="memberbudget" id="Budget">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Minimum Rating</label>
+            <input type="number" class="form-control" name="restaurantsrating" min="0" max="5.0">
+            <select name="restaurantsrating" id="Minimum">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Restaurant Location</label>
+            <select name="restaurantslocation" id="Restaurant">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
         </div>
         <div class="col-md-9 d-flex flex-wrap gap-3 align-items-center mt-2">
             <div class="form-check">
@@ -35,10 +57,6 @@
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="memberveggie" id="memberveggie">
                 <label class="form-check-label" for="memberveggie">Vegetarian</label>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="membervegan" id="membervegan">
-                <label class="form-check-label" for="membervegan">Vegan</label>
             </div>
         </div>
     </div>
