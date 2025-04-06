@@ -1,7 +1,18 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template
 from matching_algorithm import create_group_code
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///restaurants.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+# Optional: define models if you want to use ORM
+class User(db.Model):  # Example
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80))
+
 
 @app.route("/")
 def home():
