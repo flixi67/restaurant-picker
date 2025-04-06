@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<form method="POST" action="/recommendations">
+    <label for="meeting_id">Enter Meeting ID:</label>
+    <input type="text" name="meeting_id" id="meeting_id" required>
+    <button type="submit">Go</button>
+  </form>
+  {% endblock %}
+  

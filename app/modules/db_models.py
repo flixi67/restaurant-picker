@@ -1,19 +1,7 @@
-from flask import Flask, render_template, redirect
-from matching_algorithm import create_group_code
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from requests import request
-sys.path.append(os.path.abspath("app/modules/"))
-# from "01_data-pipeline-google-API" import run_pipeline_for_meeting
 
-app = Flask(__name__)
-
-### --- Define database and models -----
-
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///restaurants.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
+db = SQLAlchemy()
 
 class Meetings(db.Model):
     __tablename__ = 'meetings'
@@ -74,49 +62,7 @@ class Top_restaurants(db.Model):
     features = db.Column(db.String(100), )
     added_at = db.Column(db.String, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
-    Prevent = db.Column(db.String, ) ###
+    Prevent = db.Column(db.String, )
 
     def __repr__(self):
         return f"<Top_restaurants(id={self.id}, meeting_id={self.meeting_id}, restaurant_id={self.restaurant_id}, features={self.features}, added_at={self.added_at}, is_active={self.is_active}, Prevent={self.Prevent})>"
-
-### --- Routes of the app ------
-
-@app.route("/")
-def home():
-    return render_template("layout.html")
-
-@app.route("/new_meeting")
-def new_meeting():
-    return render_template("meeting_form.html", printed_result = create_group_code())
-
-@app.route("/join_meeting")
-def join_meeting():
-    return render_template("member_form.html")
-
-@app.route('/recommendations', methods=['GET', 'POST'])
-def recommendations_redirect():
-    if request.method == 'POST':
-        meeting_id = request.form.get('meeting_id')
-        return redirect(f'/recommendations/{meeting_id}')
-    return render_template('recommendations_redirect.html')
-
-@app.route("/recommendations/<string:meeting_id>")
-def recommendations_output(meeting_id):
-    # Step 1: Check if results already exist
-    results = Top_restaurants.query.filter_by(meeting_id=meeting_id).all()
-
-    if not results:
-        print("✨ No results found. Calculating your ideal restaurant!")
-        run_pipeline_for_meeting(meeting_id) # saves to restaurants
-        # run_algorithm_for_meeting(meetind_id) # fetches from resraurants and saves to Top_restaurants
-
-        # Fetch data from results table
-        results = Top_restaurants.query.filter_by(meeting_id=meeting_id).all()
-
-        if not results:
-            return "😬 Oops. Something went wrong while generating results.", 500
-    else:
-        print("✅ Cached results found. Serving with flair!")
-
-    # Step 2: Render the template with the results
-    return render_template("restaurant_form.html", results=results) ###

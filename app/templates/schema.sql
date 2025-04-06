@@ -8,7 +8,7 @@ CREATE TABLE meetings (
     name VARCHAR(100) NOT NULL,
     datetime TEXT NOT NULL,
     group_size INTEGER CHECK (group_size > 0),
-    budget INTEGER NOT NULL CHECK (budget BETWEEN 1 AND 3), -- 1=$, 2=$$, 3=$$$
+    budget INTEGER NOT NULL CHECK (budget BETWEEN 1 AND 4), -- 1=$, 2=$$, 3=$$$, 4=$$$$
     uses_cash INTEGER DEFAULT FALSE,
     uses_card INTEGER DEFAULT FALSE,
     is_vegetarian INTEGER DEFAULT FALSE,
@@ -24,10 +24,10 @@ CREATE TABLE restaurants (
     description TEXT,
     lat DECIMAL(10, 8) NOT NULL,
     lng DECIMAL(11, 8) NOT NULL,
-    price_range INTEGER CHECK (price_range BETWEEN 1 AND 3),
+    price_range INTEGER CHECK (price_range BETWEEN 1 AND 4),
     accepts_cash INTEGER DEFAULT FALSE,
     accepts_card INTEGER DEFAULT FALSE,
-    vegetarian_friendly INTEGER DEFAULT FALSE,
+    vegetarian_options INTEGER DEFAULT FALSE,
     rating DECIMAL(3, 2) CHECK (rating BETWEEN 0 AND 5),
     UNIQUE (lat, lng) -- Prevent duplicate locations
 );
@@ -40,7 +40,7 @@ CREATE TABLE restaurants (
 CREATE TABLE members (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6)))),
     meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
-    budget INTEGER CHECK (budget BETWEEN 1 AND 3),
+    budget INTEGER CHECK (budget BETWEEN 1 AND 4),
     uses_cash INTEGER DEFAULT FALSE,
     uses_card INTEGER DEFAULT FALSE,
     is_vegetarian INTEGER DEFAULT FALSE,
