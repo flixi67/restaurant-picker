@@ -3,9 +3,10 @@ import pandas as pd
 import requests
 from shapely.geometry import MultiPoint
 from geopy.distance import geodesic
+from decimal import Decimal
 
 # Internal imports
-from app import db
+from app import db, Restaurants
 from app.models import Meetings, Members
 from app.context import pipeline_context
 from app.modules.geocode import GoogleGeocodingAPI
@@ -17,13 +18,13 @@ def run_pipeline_for_meeting(meeting_id):
         member_addresses = db.session.query(Members.location_preference).filter_by(meeting_id=meeting_id).all()
         locations = [addr[0] for addr in member_addresses]
         member_payments = db.session.query(Members.uses_card).filter_by(meeting_id=meeting_id).all()
-        card = meeting.uses_card ## calculte from member preferences
-        db.session.query(Members.is_vegetarian).filter_by(meeting_id=meeting_id).all()
-        vegetarian = meeting.is_vegetarian ## calculate from member preferences
-        datetime = meeting.datetime.isoformat() 
+        card = any(row[0] for row in member_payments) ## calculte from member preferences
+        member_diets = db.session.query(Members.is_vegetarian).filter_by(meeting_id=meeting_id).all()
+        vegetarian = any(row[0] for row in member_diets) ## calculate from member preferences
+        datetime = db.session.query(Meetings.datetime).filter_by(id=meeting_id).first()
 
         # --- rest of your pipeline logic using locations, card, vegetarian, datetime ---
-        ### Fix imports/errors, write to restaurants db table (and fix names), check return statement 
+        ### write to restaurants db table (and fix names), check return statement 
 
         # --- DATA FETCHING PIPELINE ---
 
@@ -99,15 +100,15 @@ def run_pipeline_for_meeting(meeting_id):
 
         # 4. Filter open places
 
-        def check_open(row):
-            try:
-                return IsOpenNow(row['opening_hours'], datetime)
-            except:
-                return False
+        # def check_open(row):
+        #     try:
+        #         return IsOpenNow(row['opening_hours'], datetime)
+        #     except:
+        #         return False
 
-        if 'opening_hours' in df.columns:
-            df['is_open'] = df.apply(check_open, axis=1)
-            df = df[df['is_open'] == True]
+        # if 'opening_hours' in df.columns:
+        #     df['is_open'] = df.apply(check_open, axis=1)
+        #     df = df[df['is_open'] == True]
 
         # --- TRANSFORM PIPELINE ---
 
@@ -129,7 +130,69 @@ def run_pipeline_for_meeting(meeting_id):
 
         df['distance_from_centroid'] = df.apply(calc_distance, axis=1)
 
-        # df.to_csv("cleaned_data.csv")
+        # --- WRITE TO DB ---
+
+        # Only select the columns that map to your Restaurants model attributes
+        columns_to_keep = [
+            "id",
+            "meeting_id",
+            "rating",
+            "googleMapsUri",
+            "websiteUri",
+            "formattedAddress",
+            "internationalPhoneNumber",
+            "primaryType",
+            "userRatingCount",
+            "servesVegetarianFood",
+            "acceptsCashOnly",
+            "startPrice",
+            "endPrice",
+            "priceLevel"
+        ]
+
+        # Filter the dataframe
+        df_db = df[columns_to_keep].copy()
+
+        # Optional: rename to match your SQLAlchemy model field names
+        df_db.rename(columns={
+            "googleMapsUri": "google_maps_uri",
+            "websiteUri": "website_uri",
+            "formattedAddress": "formatted_address",
+            "internationalPhoneNumber": "international_phone_number",
+            "primaryType": "primary_type",
+            "userRatingCount": "user_rating_count",
+            "servesVegetarianFood": "serves_vegetarian_food",
+            "acceptsCashOnly": "accepts_cash_only",
+            "startPrice": "start_price",
+            "endPrice": "end_price",
+            "priceLevel": "price_level"
+        }, inplace=True)
+
+        # Convert DataFrame rows into ORM objects
+        restaurant_objects = []
+
+        for _, row in df_db.iterrows():
+            restaurant = Restaurants(
+                id=row["id"],
+                meeting_id=row["meeting_id"],
+                rating=Decimal(row["rating"]) if not pd.isna(row["rating"]) else None,
+                google_maps_uri=row["google_maps_uri"],
+                website_uri=row["website_uri"],
+                formatted_address=row["formatted_address"],
+                international_phone_number=row["international_phone_number"],
+                primary_type=row["primary_type"],
+                user_rating_count=int(row["user_rating_count"]) if not pd.isna(row["user_rating_count"]) else None,
+                serves_vegetarian_food=bool(row["serves_vegetarian_food"]),
+                accepts_cash_only=bool(row["accepts_cash_only"]),
+                start_price=Decimal(row["start_price"]) if not pd.isna(row["start_price"]) else None,
+                end_price=Decimal(row["end_price"]) if not pd.isna(row["end_price"]) else None,
+                price_level=row["price_level"]
+            )
+            restaurant_objects.append(restaurant)
+
+        # Bulk insert
+        db.session.bulk_save_objects(restaurant_objects)
+        db.session.commit()
 
         # At the end, return the DataFrame or result
         return {"status": "success", "meeting_id": meeting_id, "locations": df}
