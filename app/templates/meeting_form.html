@@ -2,7 +2,7 @@
 
 {% block content %}
 <h2>Create a New Meeting</h2>
-<form action="/create_meeting" method="POST">
+<form action="/new_meeting" method="POST">
     <div class="mb-3">
         <label for="meetingdatetime" class="form-label">Meeting Date & Time</label>
         <input type="datetime-local" class="form-control" name="meetingdatetime" required>
@@ -11,10 +11,10 @@
         <label for="meetingsize" class="form-label">Meeting Size</label>
         <input type="number" class="form-control" name="meetingsize" required>
     </div>
-    <div class="mb-3">
+    <!-- <div class="mb-3">
         <label for="memberslist" class="form-label">Members (IDs, comma separated)</label>
         <input type="text" class="form-control" name="memberslist" required>
-    </div>
-    <button type="submit" class="btn btn-primary">Submit Meeting</button>
+    </div> -->
+    <button type="submit" class="btn btn-primary">Create Meeting ID</button>
 </form>
 {% endblock %}

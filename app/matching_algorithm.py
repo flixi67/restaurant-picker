@@ -13,7 +13,7 @@ def create_group_code():
     Output: 6 digit code
     Later: Add a list; only create a code that is not already in the list
     """
-    code = random.randint(0,6)
+    code = random.randint(100000, 999999)
     return code
 
 # Function: Add weights to each item and calculate a composite score
