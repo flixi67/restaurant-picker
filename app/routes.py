@@ -11,12 +11,17 @@ def home():
 @app.route("/new_meeting", methods=['GET', 'POST'])
 def new_meeting():
     if request.method == 'POST':
-        # Retrieve form data from POST request
         meeting_datetime = request.form['meetingdatetime']
         meeting_size = request.form['meetingsize']
         
         # Generate the group code
         group_code = create_group_code()
+
+        # Create ORM model and populate its fields with IDs
+        entered_meeting_data = Meetings(group_code, meeting_datetime, meeting_size)
+        # Add to session and commit
+        db.session.add(entered_meeting_data)
+        db.session.commit() # Write this into the Meetings
 
         # Debugging: Print the group code
         print(f"Generated Group Code: {group_code}")
