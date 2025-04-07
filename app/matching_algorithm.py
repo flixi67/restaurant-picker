@@ -29,7 +29,7 @@ def create_weighting(list_of_items):
     weights[list_of_items[2]] = 0.2 # Third weight
 
 # Create a class for a single group member
-class member:
+class Member:
     def __init__(self, preferences):
 
         """
@@ -53,7 +53,7 @@ class member:
     }"""
 
 # Create a class for the group
-class group(member1, member2,...):
+class Group:
     def __init__(self, members):
         self.members = members
     def group_preferences(members):
