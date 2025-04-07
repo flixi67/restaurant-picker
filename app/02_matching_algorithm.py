@@ -13,7 +13,11 @@ def create_group_code():
     Output: 6 digit code
     Later: Add a list; only create a code that is not already in the list
     """
+    # Generate a random 6 digit number
     code = random.randint(100000, 999999)
+    if code:
+        # Check if the code already exists in the database
+        existing_codes = db.session.query(Meetings.meeting_id).all()
     return code
 
 # Function: Add weights to each item and calculate a composite score
@@ -41,16 +45,16 @@ class Member:
             'dist_from_centroid' = 0 # Weighting
         }
         """
+        """
+        For example:
+        preferences = {
+            'rating' = (4,0.5)
+            'max_budget' = (100,0.3)
+            'dist_from_centroid' = 0.2
+        }"""
         self.preferences = preferences
     
 
-    """
-    For example:
-    preferences = {
-        'rating' = (4,0.5)
-        'max_budget' = (100,0.3)
-        'dist_from_centroid' = 0.2
-    }"""
 
 # Create a class for the group
 class Group:
