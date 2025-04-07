@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime as dt
 
 db = SQLAlchemy()
 
@@ -15,7 +15,7 @@ class Meetings(db.Model):
     uses_card = db.Column(db.Boolean, default=False)
     is_vegetarian = db.Column(db.Boolean, default=False)
     centroid = db.Column(db.String, nullable=False)
-    created_at = db.Column(db.String, default=datetime.utcnow)
+    created_at = db.Column(db.String, default=dt.utcnow)
 
     def __repr__(self):
         return f"<Meetings(id={self.id}, name={self.name}, datetime={self.datetime}, group_size={self.group_size}, budget={self.budget}, uses_cash={self.uses_cash}, uses_card={self.uses_card}, is_vegetarian={self.is_vegetarian}, centroid={self.centroid}, created_at={self.created_at})>"
@@ -60,7 +60,7 @@ class Top_restaurants(db.Model):
     meeting_id = db.Column(db.String, nullable=False)
     restaurant_id = db.Column(db.String, nullable=False)
     features = db.Column(db.String(100), )
-    added_at = db.Column(db.String, default=datetime.utcnow)
+    added_at = db.Column(db.String, default=dt.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     Prevent = db.Column(db.String, )
 

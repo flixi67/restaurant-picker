@@ -1,8 +1,11 @@
+from app import create_app
 from faker import Faker
 from uuid import uuid4
-from app.models import db, Meetings, Members  # Update this with your actual app structure
-from datetime import datetime, timedelta
+import datetime as dt
 import random
+
+# Internal imports
+from app.models import db, Meetings, Members
 
 fake = Faker()
 
@@ -18,9 +21,9 @@ def seed_data(n_meetings=5, members_per_meeting=4):
         meeting = Meetings(
             id=meeting_id,
             name=fake.catch_phrase(),
-            datetime=(datetime.utcnow() + timedelta(days=random.randint(1, 30))).isoformat(),
+            datetime=(dt.datetime.utcnow() + dt.timedelta(days=random.randint(1, 30))).isoformat(),
             group_size=members_per_meeting,
-            created_at=datetime.utcnow().isoformat()
+            created_at=dt.datetime.utcnow().isoformat()
         )
         db.session.add(meeting)
 
@@ -45,4 +48,6 @@ def seed_data(n_meetings=5, members_per_meeting=4):
     print(f"Seeded {n_meetings} meetings and {n_meetings * members_per_meeting} members!")
 
 if __name__ == "__main__":
-    seed_data()
+    app = create_app()
+    with app.app_context():
+        seed_data()

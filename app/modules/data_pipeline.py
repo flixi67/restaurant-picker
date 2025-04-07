@@ -21,7 +21,7 @@ def run_pipeline_for_meeting(meeting_id):
         card = any(row[0] for row in member_payments) ## calculte from member preferences
         member_diets = db.session.query(Members.is_vegetarian).filter_by(meeting_id=meeting_id).all()
         vegetarian = any(row[0] for row in member_diets) ## calculate from member preferences
-        datetime = db.session.query(Meetings.datetime).filter_by(id=meeting_id).first()
+        datetime = meeting.datetime # take datetime from the meeting row we queried above
 
         # --- rest of your pipeline logic using locations, card, vegetarian, datetime ---
         ### write to restaurants db table (and fix names), check return statement 
@@ -174,7 +174,7 @@ def run_pipeline_for_meeting(meeting_id):
         for _, row in df_db.iterrows():
             restaurant = Restaurants(
                 id=row["id"],
-                meeting_id=row["meeting_id"],
+                meeting_id=meeting.id, # this line is different because it uses the id from "meeting" ovject we fetched before
                 rating=Decimal(row["rating"]) if not pd.isna(row["rating"]) else None,
                 google_maps_uri=row["google_maps_uri"],
                 website_uri=row["website_uri"],
@@ -195,4 +195,4 @@ def run_pipeline_for_meeting(meeting_id):
         db.session.commit()
 
         # At the end, return the DataFrame or result
-        return {"status": "success", "meeting_id": meeting_id, "locations": df}
+        return {"status": "success", "meeting_id": meeting_id, "locations": df_db}

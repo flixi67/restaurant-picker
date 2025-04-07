@@ -23,9 +23,9 @@ CREATE TABLE restaurants (
     primaryType VARCHAR(50),
     userRatingCount INTEGER CHECK (userRatingCount > 0),
     servesVegetarianFood INTEGER DEFAULT 0,
-    paymentOptions.acceptsCashOnly INTEGER DEFAULT 0,
-    priceRange.startPrice.units DECIMAL,
-    priceRange.endPrice.units DECIMAL,
+    paymentOptions_acceptsCashOnly INTEGER DEFAULT 0,
+    priceRange_startPrice_units DECIMAL,
+    priceRange_endPrice_units DECIMAL,
     priceLevel VARCHAR(50)
 );
 
@@ -51,6 +51,6 @@ CREATE TABLE top_restaurants (
     meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
     restaurant_id TEXT NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
     score REAL,             -- Add your scoring metric here
-    rank INTEGER,           -- Add rank (e.g., 1st, 2nd, 3rd)
+    ranking INTEGER,           -- Add rank (e.g., 1st, 2nd, 3rd)
     UNIQUE (meeting_id, restaurant_id) -- Prevent duplicates
 );
