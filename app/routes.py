@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
-from matching_algorithm import create_group_code
+from matching_algorithm import create_group_code, propose_restaurants
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -36,3 +37,24 @@ def join_meeting():
 @app.route("/recommendations")
 def recommendations_output():
     return render_template("restaurant_form.html")
+
+@app.route("/restaurant_preferences/<group_code>", methods=['GET', 'POST'])
+def restaurant_preferences(group_code):
+    if request.method == 'POST':
+        try:
+            candidates = pd.read_csv("cleaned_data.csv")
+           
+            preferences = {
+                "cuisine_type": (request.form.get("cuisine"), 0.4),
+                "dietary": (request.form.get("dietary"), 0.3)
+            }
+            budget = float(request.form.get("budget", 20))
+           
+            results = propose_restaurants(candidates, preferences, budget)
+            return render_template("recommendations.html",
+                               restaurants=results.head(10).to_dict('records'),
+                               group_code=group_code)
+        except Exception as e:
+            return f"Error processing recommendations: {str(e)}", 400
+   
+    return render_template("restaurant_form.html", group_code=group_code)

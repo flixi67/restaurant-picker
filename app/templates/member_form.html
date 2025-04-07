@@ -5,13 +5,14 @@
 <h2>Add Member Information</h2>
 <form action="/add_member" method="POST">
     <div class="row g-3">
-        <div class="col-md-4">
+        <!-- <div class="col-md-4">
             <label class="form-label">Member ID</label>
             <input type="number" class="form-control" name="memberid" required>
-        </div>
+        </div> -->
         <div class="col-md-4">
             <label class="form-label">Meeting Code</label>
             <input type="number" class="form-control" name="meetingcode" required>
+            <!-- Limitation: Only 6 digit numbers -->
         </div>
         <div class="col-md-4">
             <label class="form-label">Location</label>
@@ -22,6 +23,7 @@
         <div class="col-md-3">
             <label class="form-label">Budget</label>
             <input type="number" class="form-control" name="memberbudget" min="0">
+            <!-- Give specific budget categories? -->
             <select name="memberbudget" id="Budget">
                 <option value="1">1</option>
                 <option value="2">2</option>
