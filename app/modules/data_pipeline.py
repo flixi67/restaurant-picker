@@ -1,20 +1,17 @@
+import json
+import pandas as pd
+import requests
+from shapely.geometry import MultiPoint
+from geopy.distance import geodesic
+
+# Internal imports
+from app import db
+from app.models import Meetings, Members
+from app.context import pipeline_context
+from app.modules.geocode import GoogleGeocodingAPI
+
 def run_pipeline_for_meeting(meeting_id):
-    from app import app, db, Meetings, Members
-    import requests
-    import json
-    import pandas as pd
-    import sys
-    import os
-    sys.path.append(os.path.abspath("app/modules/"))
-    from geocode import GoogleGeocodingAPI
-    # from openinghours import OpenNow
-    # from flatten import FlattenPlacesResponse
-    from shapely.geometry import MultiPoint
-    from geopy.distance import geodesic
-
-    app = create_app()
-
-    with app.app_context():
+    with pipeline_context():
         # Fetch from DB
         meeting = db.session.query(Meetings).get(meeting_id)
         member_addresses = db.session.query(Members.location_preference).filter_by(meeting_id=meeting_id).all()
@@ -136,7 +133,3 @@ def run_pipeline_for_meeting(meeting_id):
 
         # At the end, return the DataFrame or result
         return {"status": "success", "meeting_id": meeting_id, "locations": df}
-
-
-
-

@@ -4,32 +4,29 @@
 
 -- Meetings (Parent table)
 CREATE TABLE meetings (
-    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6)))),
+    id VARCHAR(12) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     datetime TEXT NOT NULL,
     group_size INTEGER CHECK (group_size > 0),
-    budget INTEGER NOT NULL CHECK (budget BETWEEN 1 AND 4), -- 1=$, 2=$$, 3=$$$, 4=$$$$
-    uses_cash INTEGER DEFAULT FALSE,
-    uses_card INTEGER DEFAULT FALSE,
-    is_vegetarian INTEGER DEFAULT FALSE,
-    lat REAL NOT NULL,
-    lng REAL NOT NULL, -- PostGIS for spatial queries
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Restaurants (Standalone master data)
 CREATE TABLE restaurants (
-    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6)))),
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    lat DECIMAL(10, 8) NOT NULL,
-    lng DECIMAL(11, 8) NOT NULL,
-    price_range INTEGER CHECK (price_range BETWEEN 1 AND 4),
-    accepts_cash INTEGER DEFAULT FALSE,
-    accepts_card INTEGER DEFAULT FALSE,
-    vegetarian_options INTEGER DEFAULT FALSE,
+    id VARCHAR(100) PRIMARY KEY,
+    meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
     rating DECIMAL(3, 2) CHECK (rating BETWEEN 0 AND 5),
-    UNIQUE (lat, lng) -- Prevent duplicate locations
+    googleMapsUri VARCHAR(200) NOT NULL,
+    websiteUri VARCHAR(200),
+    formattedAddress VARCHAR(200),
+    internationalPhoneNumber VARCHAR(20),
+    primaryType VARCHAR(50),
+    userRatingCount INTEGER CHECK (userRatingCount > 0),
+    servesVegetarianFood INTEGER DEFAULT 0,
+    paymentOptions.acceptsCashOnly INTEGER DEFAULT 0,
+    priceRange.startPrice.units DECIMAL,
+    priceRange.endPrice.units DECIMAL,
+    priceLevel VARCHAR(50)
 );
 
 -- ========================
@@ -53,16 +50,7 @@ CREATE TABLE top_restaurants (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6)))),
     meeting_id TEXT NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
     restaurant_id TEXT NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
-    added_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    is_active INTEGER DEFAULT TRUE,
+    score REAL,             -- Add your scoring metric here
+    rank INTEGER,           -- Add rank (e.g., 1st, 2nd, 3rd)
     UNIQUE (meeting_id, restaurant_id) -- Prevent duplicates
 );
-
--- ========================
--- Performance Optimizations
--- ========================
-
--- Indexes for frequent filters
-CREATE INDEX idx_meetings_datetime ON meetings(datetime);
-CREATE INDEX idx_restaurants_veg ON restaurants(vegetarian_friendly) WHERE vegetarian_friendly = TRUE;
-CREATE INDEX idx_top_restaurants_active ON top_restaurants(meeting_id) WHERE is_active = TRUE;
