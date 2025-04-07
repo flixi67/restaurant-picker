@@ -22,11 +22,6 @@ class Meetings(db.Model):
     name = db.Column(db.String(100), nullable=False)
     datetime = db.Column(db.String, nullable=False)
     group_size = db.Column(db.Integer, )
-    budget = db.Column(db.Integer, nullable=False)
-    uses_cash = db.Column(db.Boolean, default=False)
-    uses_card = db.Column(db.Boolean, default=False)
-    is_vegetarian = db.Column(db.Boolean, default=False)
-    centroid = db.Column(db.String, nullable=False)
     created_at = db.Column(db.String, default=datetime.utcnow)
 
     def __repr__(self):
