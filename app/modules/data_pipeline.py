@@ -9,6 +9,7 @@ from decimal import Decimal
 from app.models import db, Meetings, Members, Restaurants
 from app.context import pipeline_context
 from app.modules.geocode import GoogleGeocodingAPI
+from app.modules.flatten import FlattenPlacesResponse
 
 def run_pipeline_for_meeting(meeting_id):
     with pipeline_context():
@@ -77,26 +78,33 @@ def run_pipeline_for_meeting(meeting_id):
         # Make the request
         response = requests.post(url, headers=headers, data=json.dumps(payload))
 
+        # Ininiate flattener
+        flattener = FlattenPlacesResponse(full_scope=True)
+
         # Print response
         if response.status_code == 200:
             print("Success! Response data:")
             print(json.dumps(response.json(), indent=2))
-            df = pd.json_normalize(response.json(), record_path=["places"]) # here goes flattening the dataframe once we know the response fields we need.
+            df = flattener.flatten(response.json())
         else:
             print(f"Error {response.status_code}: {response.text}")
 
         # --- FILTER PIPELINE ---
 
         # 1. Filter operational businesses
-        df = df[df['businessStatus'] == 'OPERATIONAL']
+        # df = df[df['businessStatus'] == 'OPERATIONAL']
 
         # 2. Filter vegetarian-friendly places if requested
         if vegetarian == 1 and 'servesVegetarianFood' in df.columns:
             df = df[df['servesVegetarianFood'] == True]
+        else:
+            NameError("No information on vegetarian options in database. Not filtering for dietary restrictions, please manually check.")
 
         # 3. Filter for debit card support if requested
         if card == 1 and 'paymentOptions.acceptsDebitCards' in df.columns:
             df = df[df['paymentOptions.acceptsDebitCards'] == True]
+        else:
+            NameError("No information on payment options in database. Not filtering for card payments, please manually check.")
 
         # 4. Filter open places
 
@@ -111,6 +119,10 @@ def run_pipeline_for_meeting(meeting_id):
         #     df = df[df['is_open'] == True]
 
         # --- TRANSFORM PIPELINE ---
+        # Debugging code:
+        print("📦 df columns:", df.columns.tolist())
+        print("🔍 Sample row:", df.iloc[0].to_dict() if not df.empty else "Empty DataFrame")
+
 
         # Calculating distance from centroid
         def get_lat_lng(address):
