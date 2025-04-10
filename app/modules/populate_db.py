@@ -36,7 +36,7 @@ def seed_data(n_meetings=5, members_per_meeting=4):
                 uses_cash=random.choice([True, False]),
                 uses_card=random.choice([True, False]),
                 is_vegetarian=random.choice([True, False]),
-                location_preference=fake.city()
+                location_preference=fake.address()
             )
             # Enforce at least one payment method
             if not (member.uses_cash or member.uses_card):
