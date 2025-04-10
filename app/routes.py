@@ -1,20 +1,61 @@
-from flask import Flask, render_template, request
-from matching_algorithm import create_group_code
+from flask import Blueprint, render_template, redirect,request
+# from matching_algorithm import create_group_code
 
-app = Flask(__name__)
+# Internal imports
+from app.models import db, Meetings, Members, Restaurants, TopRestaurants
+from app.modules.data_pipeline import run_pipeline_for_meeting
+from app.matching_algorithm import create_group_code
 
-@app.route("/")
+
+### --- Define blueprints
+
+main_bp = Blueprint("main", __name__)
+pipeline_bp = Blueprint("pipeline", __name__, url_prefix="/recommendations")
+
+### --- Routes of the app ------
+
+@main_bp.route("/")
 def home():
     return render_template("layout.html")
 
-@app.route("/new_meeting")
+@main_bp.route("/new_meeting")
 def new_meeting():
     return render_template("meeting_form.html", printed_result = create_group_code())
 
-@app.route("/join_meeting")
+@main_bp.route("/join_meeting")
 def join_meeting():
     return render_template("member_form.html")
 
-@app.route("/recommendations")
-def recommendations_output():
-    return render_template("restaurant_form.html")
+@main_bp.route('/recommendations', methods=['GET', 'POST'])
+def recommendations_redirect():
+    if request.method == 'POST':
+        meeting_id = request.form.get('meeting_id')
+        return redirect(f'/recommendations/{meeting_id}')
+    return render_template('recommendations_redirect.html')
+
+@pipeline_bp.route("/<string:meeting_id>")
+def recommendations_output(meeting_id):
+    # Step 1: Check if results already exist
+    results = TopRestaurants.query.filter_by(meeting_id=meeting_id).all()
+
+    if not results:
+        print("✨ No results found. Calculating your ideal restaurant!")
+        
+        try:
+            run_pipeline_for_meeting(meeting_id)
+            results = TopRestaurants.query.filter_by(meeting_id=meeting_id).all()
+            return render_template("recommendations.html", results=results)
+    
+        except ValueError as e:
+            # This is where you handle the missing meeting
+            return render_template("error.html", message=str(e))
+        # Fetch data from results table
+        results = TopRestaurants.query.filter_by(meeting_id=meeting_id).all()
+
+        if not results:
+            return "😬 Oops. Something went wrong while generating results.", 500
+    else:
+        print("✅ Cached results found. Serving with flair!")
+
+    # Step 2: Render the template with the results
+    return render_template("restaurant_form.html", results=results) ###
