@@ -41,8 +41,7 @@ def recommendations_output(meeting_id):
     if not results:
         print("✨ No results found. Calculating your ideal restaurant!")
         run_pipeline_for_meeting(meeting_id) # saves to restaurants
-        # run_algorithm_for_meeting(meetind_id) # fetches from resraurants and saves to Top_restaurants
-
+        # run_algorithm_for_meeting(meeting_id) # fetches from restaurants and saves to Top_restaurants
         # Fetch data from results table
         results = Top_restaurants.query.filter_by(meeting_id=meeting_id).all()
 
