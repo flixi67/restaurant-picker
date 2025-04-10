@@ -45,9 +45,8 @@ def run_pipeline_for_meeting(meeting_id):
                 points.append([coord[k] for k in ["lat", "lng"]])
             else:
                 print(f"For the adress: {address} geocoding failed. It will not be included.")
-            
-            centroid = MultiPoint(points).centroid
-
+        
+        centroid = MultiPoint(points).centroid
         if centroid:
             print("Centroid Latitude:", centroid.x)
             print("Centroid Longitude:", centroid.y)
