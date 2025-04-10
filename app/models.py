@@ -61,7 +61,7 @@ class TopRestaurants(db.Model):
     meeting_id = db.Column(db.String, db.ForeignKey('meetings.id', ondelete='CASCADE'), nullable=False)
     restaurant_id = db.Column(db.String, db.ForeignKey('restaurants.id', ondelete='CASCADE'), nullable=False)
     score = db.Column(db.Float)
-    rank = db.Column(db.Integer)
+    ranking = db.Column(db.Integer)
 
     __table_args__ = (
         db.UniqueConstraint('meeting_id', 'restaurant_id', name='unique_meeting_restaurant'),

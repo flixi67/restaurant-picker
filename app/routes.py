@@ -1,10 +1,10 @@
-from flask import Blueprint, render_template, redirect
-from matching_algorithm import create_group_code
-from requests import request
+from flask import Blueprint, render_template, redirect,request
+# from matching_algorithm import create_group_code
 
 # Internal imports
-from .models import db, Meeting, Members, Restaurants, Top_restaurants
-from modules.data_pipeline import run_pipeline_for_meeting
+from app.models import db, Meetings, Members, Restaurants, TopRestaurants
+from app.modules.data_pipeline import run_pipeline_for_meeting
+from app.matching_algorithm import create_group_code
 
 
 ### --- Define blueprints
@@ -26,7 +26,7 @@ def new_meeting():
 def join_meeting():
     return render_template("member_form.html")
 
-@main_bp.route('/', methods=['GET', 'POST'])
+@main_bp.route('/recommendations', methods=['GET', 'POST'])
 def recommendations_redirect():
     if request.method == 'POST':
         meeting_id = request.form.get('meeting_id')
@@ -36,14 +36,21 @@ def recommendations_redirect():
 @pipeline_bp.route("/<string:meeting_id>")
 def recommendations_output(meeting_id):
     # Step 1: Check if results already exist
-    results = Top_restaurants.query.filter_by(meeting_id=meeting_id).all()
+    results = TopRestaurants.query.filter_by(meeting_id=meeting_id).all()
 
     if not results:
         print("✨ No results found. Calculating your ideal restaurant!")
-        run_pipeline_for_meeting(meeting_id) # saves to restaurants
-        # run_algorithm_for_meeting(meeting_id) # fetches from restaurants and saves to Top_restaurants
+        
+        try:
+            run_pipeline_for_meeting(meeting_id)
+            results = TopRestaurants.query.filter_by(meeting_id=meeting_id).all()
+            return render_template("recommendations.html", results=results)
+    
+        except ValueError as e:
+            # This is where you handle the missing meeting
+            return render_template("error.html", message=str(e))
         # Fetch data from results table
-        results = Top_restaurants.query.filter_by(meeting_id=meeting_id).all()
+        results = TopRestaurants.query.filter_by(meeting_id=meeting_id).all()
 
         if not results:
             return "😬 Oops. Something went wrong while generating results.", 500

@@ -6,8 +6,7 @@ from geopy.distance import geodesic
 from decimal import Decimal
 
 # Internal imports
-from app import db, Restaurants
-from app.models import Meetings, Members
+from app.models import db, Meetings, Members, Restaurants
 from app.context import pipeline_context
 from app.modules.geocode import GoogleGeocodingAPI
 
@@ -15,6 +14,8 @@ def run_pipeline_for_meeting(meeting_id):
     with pipeline_context():
         # Fetch from DB
         meeting = db.session.query(Meetings).get(meeting_id)
+        if meeting is None:
+            raise ValueError(f"❌ No meeting found with ID: {meeting_id}")
         member_addresses = db.session.query(Members.location_preference).filter_by(meeting_id=meeting_id).all()
         locations = [addr[0] for addr in member_addresses]
         member_payments = db.session.query(Members.uses_card).filter_by(meeting_id=meeting_id).all()
