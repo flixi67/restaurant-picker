@@ -147,7 +147,6 @@ def run_pipeline_for_meeting(meeting_id):
         # Only select the columns that map to your Restaurants model attributes
         columns_to_keep = [
             "id",
-            "meeting_id",
             "rating",
             "googleMapsUri",
             "websiteUri",
@@ -156,9 +155,9 @@ def run_pipeline_for_meeting(meeting_id):
             "primaryType",
             "userRatingCount",
             "servesVegetarianFood",
-            "acceptsCashOnly",
-            "startPrice",
-            "endPrice",
+            "paymentOptions.acceptsCashOnly",
+            "priceRange.startPrice.units",
+            "priceRange.endPrice.units",
             "priceLevel"
         ]
 
@@ -174,9 +173,9 @@ def run_pipeline_for_meeting(meeting_id):
             "primaryType": "primary_type",
             "userRatingCount": "user_rating_count",
             "servesVegetarianFood": "serves_vegetarian_food",
-            "acceptsCashOnly": "accepts_cash_only",
-            "startPrice": "start_price",
-            "endPrice": "end_price",
+            "paymentOptions.acceptsCashOnly": "accepts_cash_only",
+            "priceRange.startPrice.units": "start_price",
+            "priceRange.endPrice.units": "end_price",
             "priceLevel": "price_level"
         }, inplace=True)
 

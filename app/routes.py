@@ -49,10 +49,8 @@ def recommendations_output(meeting_id):
         except ValueError as e:
             # This is where you handle the missing meeting
             return render_template("error.html", message=str(e))
-        # Fetch data from results table
-        results = TopRestaurants.query.filter_by(meeting_id=meeting_id).all()
 
-        if not results:
+    if not results:
             return "😬 Oops. Something went wrong while generating results.", 500
     else:
         print("✅ Cached results found. Serving with flair!")
