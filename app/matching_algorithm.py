@@ -1,3 +1,7 @@
+from app.models import db, Meetings, Members, Restaurants
+from app.context import pipeline_context
+from app.modules.geocode import GoogleGeocodingAPI
+
 import numpy as np
 import pandas as pd
 import requests
@@ -100,39 +104,37 @@ def propose_restaurants(candidates, group_preferences, meeting_id):
     Returns:
         DataFrame sorted by composite score with budget filtering
     """
-    # Fetch from DB
-    candidates = db.session.query(Restaurants).filter_by(meeting_id=meeting_id).all()
-    preferences = db.session.query(Members).filter_by(meeting_id=meeting_id).all()
-
-    # Create outcome vector
-    scores = []
-
-    # Iterate through restaurants
-    for _, restaurant in candidates.iterrows():
-        score = 0
-
-        # 1. Budget constraint (hard filter + soft scoring)
-        if restaurant['end_price'] > group_preferences['max_budget_per_person'][0]:
-            continue  # Skip if over budget
-
-        budget_score = 1 - (restaurant['end_price'] / group_preferences['max_budget_per_person'][0])
-        score += 0.2 * budget_score
-
-        # 2. Rating (normalized 0-1 scale)
-        score += 0.1 * (restaurant['rating'] / 5)
-
-        # 3. Distance from centroid (closer = better)
-        if 'distance_from_centroid' in restaurant:
-            score += 0.05 * (1 / (1 + restaurant['distance_from_centroid']))  # Example: inverse distance
-
-        scores.append(score)
-
-    # Apply scoring and filter
-    candidates['composite_score'] = scores
-    return candidates.sort_values('composite_score', ascending=False)
-
+    with pipeline_context():
+        # Fetch from DB
+        candidates = db.session.query(Restaurants).filter_by(meeting_id=meeting_id).all()
+        preferences = db.session.query(Members).filter_by(meeting_id=meeting_id).all()
         
+        # Create outcome vector
+        scores = []
 
+        # Iterate through restaurants
+        for _, restaurant in candidates.iterrows():
+            score = 0
+
+            # 1. Budget constraint (hard filter + soft scoring)
+            if restaurant['end_price'] > group_preferences['max_budget_per_person'][0]:
+                continue  # Skip if over budget
+
+            budget_score = 1 - (restaurant['end_price'] / group_preferences['max_budget_per_person'][0])
+            score += 0.2 * budget_score
+
+            # 2. Rating (normalized 0-1 scale)
+            score += 0.1 * (restaurant['rating'] / 5)
+
+            # 3. Distance from centroid (closer = better)
+            if 'distance_from_centroid' in restaurant:
+                score += 0.05 * (1 / (1 + restaurant['distance_from_centroid']))  # Example: inverse distance
+
+            scores.append(score)
+
+        # Apply scoring and filter
+        candidates['composite_score'] = scores
+        return candidates.sort_values('composite_score', ascending=False)
 
 
 """ ---- Functions that are no longer needed ----
