@@ -10,6 +10,7 @@ from app.models import db, Meetings, Members, Restaurants
 from app.context import pipeline_context
 from app.modules.geocode import GoogleGeocodingAPI
 from app.modules.flatten import FlattenPlacesResponse
+from app.modules.is_open import is_open_at_time
 
 def run_pipeline_for_meeting(meeting_id):
     with pipeline_context():
@@ -108,21 +109,10 @@ def run_pipeline_for_meeting(meeting_id):
 
         # 4. Filter open places
 
-        # def check_open(row):
-        #     try:
-        #         return IsOpenNow(row['opening_hours'], datetime)
-        #     except:
-        #         return False
+        df = df[df.apply(lambda row: is_open_at_time(row, datetime), axis=1)]
 
-        # if 'opening_hours' in df.columns:
-        #     df['is_open'] = df.apply(check_open, axis=1)
-        #     df = df[df['is_open'] == True]
 
         # --- TRANSFORM PIPELINE ---
-        # Debugging code:
-        print("📦 df columns:", df.columns.tolist())
-        print("🔍 Sample row:", df.iloc[0].to_dict() if not df.empty else "Empty DataFrame")
-
 
         # Calculating distance from centroid
         def get_lat_lng(address):
