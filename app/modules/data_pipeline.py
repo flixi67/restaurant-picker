@@ -9,6 +9,8 @@ from decimal import Decimal
 from app.models import db, Meetings, Members, Restaurants
 from app.context import pipeline_context
 from app.modules.geocode import GoogleGeocodingAPI
+from app.modules.flatten import FlattenPlacesResponse
+from app.modules.is_open import is_open_at_time
 
 def run_pipeline_for_meeting(meeting_id):
     with pipeline_context():
@@ -77,38 +79,37 @@ def run_pipeline_for_meeting(meeting_id):
         # Make the request
         response = requests.post(url, headers=headers, data=json.dumps(payload))
 
+        # Ininiate flattener
+        flattener = FlattenPlacesResponse(full_scope=True)
+
         # Print response
         if response.status_code == 200:
             print("Success! Response data:")
             print(json.dumps(response.json(), indent=2))
-            df = pd.json_normalize(response.json(), record_path=["places"]) # here goes flattening the dataframe once we know the response fields we need.
+            df = flattener.flatten(response.json())
         else:
             print(f"Error {response.status_code}: {response.text}")
 
         # --- FILTER PIPELINE ---
 
         # 1. Filter operational businesses
-        df = df[df['businessStatus'] == 'OPERATIONAL']
+        # df = df[df['businessStatus'] == 'OPERATIONAL']
 
         # 2. Filter vegetarian-friendly places if requested
         if vegetarian == 1 and 'servesVegetarianFood' in df.columns:
             df = df[df['servesVegetarianFood'] == True]
+        else:
+            raise NameError("No information on vegetarian options in database. Not filtering for dietary restrictions, please manually check.")
 
         # 3. Filter for debit card support if requested
         if card == 1 and 'paymentOptions.acceptsDebitCards' in df.columns:
             df = df[df['paymentOptions.acceptsDebitCards'] == True]
-
+        else:
+            raise NameError("No information on payment options in database. Not filtering for card payments, please manually check.")
         # 4. Filter open places
 
-        # def check_open(row):
-        #     try:
-        #         return IsOpenNow(row['opening_hours'], datetime)
-        #     except:
-        #         return False
+        df = df[df.apply(lambda row: is_open_at_time(row, datetime), axis=1)]
 
-        # if 'opening_hours' in df.columns:
-        #     df['is_open'] = df.apply(check_open, axis=1)
-        #     df = df[df['is_open'] == True]
 
         # --- TRANSFORM PIPELINE ---
 
@@ -135,7 +136,6 @@ def run_pipeline_for_meeting(meeting_id):
         # Only select the columns that map to your Restaurants model attributes
         columns_to_keep = [
             "id",
-            "meeting_id",
             "rating",
             "googleMapsUri",
             "websiteUri",
@@ -144,9 +144,9 @@ def run_pipeline_for_meeting(meeting_id):
             "primaryType",
             "userRatingCount",
             "servesVegetarianFood",
-            "acceptsCashOnly",
-            "startPrice",
-            "endPrice",
+            "paymentOptions.acceptsCashOnly",
+            "priceRange.startPrice.units",
+            "priceRange.endPrice.units",
             "priceLevel"
         ]
 
@@ -162,9 +162,9 @@ def run_pipeline_for_meeting(meeting_id):
             "primaryType": "primary_type",
             "userRatingCount": "user_rating_count",
             "servesVegetarianFood": "serves_vegetarian_food",
-            "acceptsCashOnly": "accepts_cash_only",
-            "startPrice": "start_price",
-            "endPrice": "end_price",
+            "paymentOptions.acceptsCashOnly": "accepts_cash_only",
+            "priceRange.startPrice.units": "start_price",
+            "priceRange.endPrice.units": "end_price",
             "priceLevel": "price_level"
         }, inplace=True)
 
