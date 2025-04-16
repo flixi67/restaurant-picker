@@ -99,14 +99,13 @@ def run_pipeline_for_meeting(meeting_id):
         if vegetarian == 1 and 'servesVegetarianFood' in df.columns:
             df = df[df['servesVegetarianFood'] == True]
         else:
-            NameError("No information on vegetarian options in database. Not filtering for dietary restrictions, please manually check.")
+            raise NameError("No information on vegetarian options in database. Not filtering for dietary restrictions, please manually check.")
 
         # 3. Filter for debit card support if requested
         if card == 1 and 'paymentOptions.acceptsDebitCards' in df.columns:
             df = df[df['paymentOptions.acceptsDebitCards'] == True]
         else:
-            NameError("No information on payment options in database. Not filtering for card payments, please manually check.")
-
+            raise NameError("No information on payment options in database. Not filtering for card payments, please manually check.")
         # 4. Filter open places
 
         df = df[df.apply(lambda row: is_open_at_time(row, datetime), axis=1)]
