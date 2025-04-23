@@ -1,20 +1,81 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<h2>Create a New Meeting</h2>
-<form action="/new_meeting" method="POST">
-    <div class="mb-3">
-        <label for="meetingdatetime" class="form-label">Meeting Date & Time</label>
-        <input type="datetime-local" class="form-control" name="meetingdatetime" required>
-    </div>
-    <div class="mb-3">
-        <label for="meetingsize" class="form-label">Meeting Size</label>
-        <input type="number" class="form-control" name="meetingsize" required>
-    </div>
-    <!-- <div class="mb-3">
-        <label for="memberslist" class="form-label">Members (IDs, comma separated)</label>
-        <input type="text" class="form-control" name="memberslist" required>
-    </div> -->
-    <button type="submit" class="btn btn-primary">Create Meeting ID</button>
-</form>
+<style>
+    body {
+        font-family: 'Fredoka', sans-serif;
+        background-color: #eafaf7;
+    }
+    .form-container {
+        background: #ffffff;
+        padding: 40px;
+        border-radius: 30px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+        max-width: 600px;
+        margin: auto;
+    }
+    .form-title {
+        color: #0b827c;
+        font-weight: 700;
+        margin-bottom: 30px;
+        text-align: center;
+        font-size: 28px;
+    }
+    .form-label {
+        font-weight: 600;
+        color: #333;
+    }
+    .form-control {
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 16px;
+    }
+    .btn-custom {
+        background-color: #0b827c;
+        color: white;
+        font-weight: bold;
+        border-radius: 12px;
+        padding: 10px 30px;
+        font-size: 16px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: background-color 0.2s ease;
+    }
+    .btn-custom:hover {
+        background-color: #096963;
+    }
+</style>
+
+<div class="form-container">
+    <h2 class="form-title">🗓️ Schedule Your Meeting</h2>
+    <form method="POST" action="/submit_meeting">
+        <div class="mb-4">
+            <label for="meetingdatetime" class="form-label">Meeting Date & Time</label>
+            <input type="datetime-local" class="form-control" id="meetingdatetime" name="meetingdatetime" required>
+        </div>
+
+        <div class="mb-4">
+            <label for="meetingsize" class="form-label">Group Size</label>
+            <input type="number" class="form-control" id="meetingsize" name="meetingsize" min="1" required>
+        </div>
+
+        <div class="mb-4">
+            <label for="memberslist" class="form-label">Member IDs (comma separated)</label>
+            <input type="text" class="form-control" id="memberslist" name="memberslist" placeholder="e.g., 101, 102, 103" required>
+        </div>
+
+        <div class="mb-4">
+            <label for="meetingcode" class="form-label">Meeting Code</label>
+            <input type="text" class="form-control" id="meetingcode" name="meetingcode" required readonly>
+        </div>
+
+        <div class="mb-4">
+            <label for="restaurantid" class="form-label">Preferred Restaurant ID</label>
+            <input type="number" class="form-control" id="restaurantid" name="restaurantid">
+        </div>
+
+        <div class="text-center">
+            <button type="submit" class="btn btn-custom">Create Meeting</button>
+        </div>
+    </form>
+</div>
 {% endblock %}

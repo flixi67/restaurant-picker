@@ -1,75 +1,88 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Restaurant Matches</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <style>
-    body {
-      background-color: #f8f9fa;
-    }
-    .card {
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-    .table th, .table td {
-      vertical-align: middle;
-      text-align: center;
-    }
-    h1 {
-      font-weight: 600;
-    }
-  </style>
-</head>
-<body class="container py-5">
+{% extends "layout.html" %}
 
-  <div class="text-center mb-4">
-    <h1 class="display-5">🍽️ Restaurant Suggestions</h1>
-    <p class="text-muted">Here are the best-matching options based on your preferences.</p>
-    <!-- Display the group code too -->
-  </div>
+{% block content %}
+<style>
+  body {
+    font-family: 'Fredoka', sans-serif;
+    background-color: #f8f9fa;
+  }
+  .section-title {
+    text-align: center;
+    font-size: 36px;
+    font-weight: bold;
+    margin-top: 20px;
+  }
+  .section-subtitle {
+    text-align: center;
+    color: #6c757d;
+    font-size: 18px;
+    margin-bottom: 30px;
+  }
+  .table-container {
+    max-width: 1000px;
+    margin: auto;
+    background: #fff;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th {
+    background-color: #343a40;
+    color: #fff;
+    font-weight: bold;
+    padding: 12px;
+  }
+  td {
+    padding: 12px;
+    text-align: center;
+  }
+  .alert-warning {
+    max-width: 700px;
+    margin: 30px auto;
+  }
+</style>
 
-  {% if restaurants %}
-  <div class="card p-3">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
-        <thead class="table-dark">
-          <tr>
-            <th>Restaurant ID</th>
-            <th>Location</th>
-            <th>Budget (€)</th>
-            <th>Accepts Cash</th>
-            <th>Accepts Card</th>
-            <th>Vegetarian Friendly</th>
-            <th>Vegan Friendly</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in restaurants %}
-          <tr>
-            <td>{{ r.restaurantid }}</td>
-            <td>{{ r.restaurantloc }}</td>
-            <td>{{ r.restaurantbudget }}</td>
-            <td>{{ 'Yes' if r.restaurantcash else 'No' }}</td>
-            <td>{{ 'Yes' if r.restaurantcard else 'No' }}</td>
-            <td>{{ 'Yes' if r.restaurantveggie else 'No' }}</td>
-            <td>{{ 'Yes' if r.restaurantvegan else 'No' }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-  {% else %}
-  <div class="alert alert-warning text-center mt-4" role="alert">
-    😔 No restaurant matches found for this meeting.
-  </div>
-  {% endif %}
+<div class="section-title">🍽️ Restaurant Suggestions</div>
+<p class="section-subtitle">Here are the best-matching options based on your preferences.</p>
 
-  <div class="text-center mt-5">
-    <a href="/" class="btn btn-outline-primary btn-lg">⬅️ Back to Home</a>
-  </div>
+{% if restaurants %}
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>Restaurant ID</th>
+        <th>Location</th>
+        <th>Budget (€)</th>
+        <th>Accepts Cash</th>
+        <th>Accepts Card</th>
+        <th>Vegetarian Friendly</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in restaurants %}
+      <tr>
+        <td>{{ r.restaurantid }}</td>
+        <td>{{ r.restaurantloc }}</td>
+        <td>{{ r.restaurantbudget }}</td>
+        <td>{{ 'Yes' if r.restaurantcash else 'No' }}</td>
+        <td>{{ 'Yes' if r.restaurantcard else 'No' }}</td>
+        <td>{{ 'Yes' if r.restaurantveggie else 'No' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="alert alert-warning text-center" role="alert">
+  😔 No restaurant matches found for this meeting.
+</div>
+{% endif %}
 
-</body>
-</html>
+<div class="text-center mt-4">
+  <a href="/" class="btn btn-outline-primary btn-lg">⬅️ Back to Home</a>
+</div>
+{% endblock %}
