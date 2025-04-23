@@ -45,8 +45,41 @@ def new_meeting():
     # If it's a GET request, show the form
     return render_template("meeting_form.html")
 
-@main_bp.route("/join_meeting")
+@main_bp.route("/join_meeting", methods=['GET', 'POST'])
 def join_meeting():
+    # Need to fill this in
+    if request.method == 'POST':
+        meeting_id = request.form['meetingcode']
+        member_current_location = request.form['memberloc']
+        member_max_budget = request.form['memberbudget']
+        member_budget_preference = request.form['memberbudgetpreference']
+        member_rating_preference = request.form['restaurantsrating']
+        member_location_preference = request.form['restaurantslocation']
+        member_cash = request.form.get('membercash', False) # If ticked, shows True. Otherwise False.
+        member_card = request.form.get('membercard') == 'on'  # Will be True if 'on', False if not present
+
+        member_veg = request.form.get('memberveggie', False)
+
+        entered_member_data = Members(meeting_id = meeting_id,
+                                      budget = member_max_budget,
+                                      uses_cash = member_cash,
+                                      uses_card = member_card,
+                                      is_vegetarian = member_veg,
+                                      location_preference = member_current_location
+                                      # Members table is missing the preferences
+                                      )
+
+        # Add to session and commit
+        db.session.add(entered_member_data)
+        db.session.commit() # Write this into the Members
+
+        # Render the confirmation page with meeting data and group code
+        return render_template("member_confirmation.html",
+                               meeting_id = meeting_id,
+                               member_current_location=member_current_location,
+                               )
+    
+    # If it's a GET request, show the form
     return render_template("member_form.html")
 
 @main_bp.route("/recommendations")
