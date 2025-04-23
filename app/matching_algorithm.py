@@ -21,7 +21,7 @@ def create_group_code():
         # Generate a random 6-digit number
         code = random.randint(100000, 999999)
         # Check if the code already exists in the database
-        existing_codes = db.session.query(Meetings.meeting_id).all()
+        existing_codes = db.session.query(Meetings.id).all()
         existing_codes = [code[0] for code in existing_codes]
         if code not in existing_codes:
             return code  # Return the code if it's unique

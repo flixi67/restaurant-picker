@@ -12,8 +12,9 @@
             <a class="navbar-brand" href="/">Meeting Planner</a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('new_meeting') }}">New Meeting</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('join_meeting') }}">Add Member</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('main.new_meeting') }}">New Meeting</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('main.join_meeting') }}">Add Member</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('main.recommendations_redirect') }}">Get Results</a></li>
                 </ul>
             </div>
         </div>
@@ -23,8 +24,9 @@
         {% block content %}
         <!-- page-specific content will go here -->
         <ul>
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('new_meeting') }}">New Meeting</a></li>
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('join_meeting') }}">Add Member</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('main.new_meeting') }}">New Meeting</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('main.join_meeting') }}">Add Member</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('main.recommendations_redirect') }}">Get Results</a></li>
         </ul>
         {% endblock %}
     </div>

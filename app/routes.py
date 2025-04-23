@@ -1,14 +1,24 @@
-from flask import Flask, render_template, request
-from matching_algorithm import create_group_code, propose_restaurants
 import pandas as pd
+from flask import Blueprint, render_template, redirect,request
 
-app = Flask(__name__)
+# Internal imports
+from app.models import db, Meetings, Members, Restaurants, TopRestaurants
+from app.modules.data_pipeline import run_pipeline_for_meeting
+from app.matching_algorithm import create_group_code, propose_restaurants
 
-@app.route("/")
+
+### --- Define blueprints
+
+main_bp = Blueprint("main", __name__)
+pipeline_bp = Blueprint("pipeline", __name__, url_prefix="/recommendations")
+
+### --- Routes of the app ------
+
+@main_bp.route("/")
 def home():
     return render_template("layout.html")
 
-@app.route("/new_meeting", methods=['GET', 'POST'])
+@main_bp.route("/new_meeting", methods=['GET', 'POST'])
 def new_meeting():
     if request.method == 'POST':
         meeting_datetime = request.form['meetingdatetime']
@@ -18,7 +28,7 @@ def new_meeting():
         group_code = create_group_code()
 
         # Create ORM model and populate its fields with IDs
-        entered_meeting_data = Meetings(group_code, meeting_datetime, meeting_size)
+        entered_meeting_data = Meetings(id = group_code, datetime = meeting_datetime, group_size = meeting_size)
         # Add to session and commit
         db.session.add(entered_meeting_data)
         db.session.commit() # Write this into the Meetings
@@ -29,21 +39,55 @@ def new_meeting():
         # Render the confirmation page with meeting data and group code
         return render_template("meeting_confirmation.html", 
                                 group_code=group_code,
-                               meeting_datetime=meeting_datetime,
-                               meeting_size=meeting_size)
+                                meeting_datetime=meeting_datetime,
+                                meeting_size=meeting_size)
     
     # If it's a GET request, show the form
     return render_template("meeting_form.html")
 
-@app.route("/join_meeting")
+@main_bp.route("/join_meeting", methods=['GET', 'POST'])
 def join_meeting():
+    # Need to fill this in
+    if request.method == 'POST':
+        meeting_id = request.form['meetingcode']
+        member_current_location = request.form['memberloc']
+        member_max_budget = request.form['memberbudget']
+        member_budget_preference = request.form['memberbudgetpreference']
+        member_rating_preference = request.form['restaurantsrating']
+        member_location_preference = request.form['restaurantslocation']
+        member_cash = request.form.get('membercash', False) # If ticked, shows True. Otherwise False.
+        member_card = request.form.get('membercard') == 'on'  # Will be True if 'on', False if not present
+        member_veg = request.form.get('memberveggie') == 'on'
+
+        entered_member_data = Members(meeting_id = meeting_id,
+                                      budget = member_max_budget,
+                                      uses_cash = member_cash,
+                                      uses_card = member_card,
+                                      is_vegetarian = member_veg,
+                                      current_location = member_current_location,
+                                      location_preference = member_location_preference,
+                                      rating_preference = member_rating_preference, 
+                                      budget_preference = member_budget_preference
+                                      )
+
+        # Add to session and commit
+        db.session.add(entered_member_data)
+        db.session.commit() # Write this into the Members
+
+        # Render the confirmation page with meeting data and group code
+        return render_template("member_confirmation.html",
+                               meeting_id = meeting_id,
+                               member_current_location=member_current_location,
+                               )
+    
+    # If it's a GET request, show the form
     return render_template("member_form.html")
 
-@app.route("/recommendations")
+@main_bp.route("/recommendations")
 def recommendations_output():
     return render_template("restaurant_form.html")
 
-@app.route("/restaurant_preferences/<group_code>", methods=['GET', 'POST'])
+@main_bp.route("/restaurant_preferences/<group_code>", methods=['GET', 'POST'])
 def restaurant_preferences(group_code):
     if request.method == 'POST':
         try:
@@ -63,3 +107,35 @@ def restaurant_preferences(group_code):
             return f"Error processing recommendations: {str(e)}", 400
    
     return render_template("restaurant_form.html", group_code=group_code)
+
+@main_bp.route('/recommendations', methods=['GET', 'POST'])
+def recommendations_redirect():
+    if request.method == 'POST':
+        meeting_id = request.form.get('meeting_id')
+        return redirect(f'/recommendations/{meeting_id}')
+    return render_template('recommendations_redirect.html')
+
+@pipeline_bp.route("/<string:meeting_id>")
+def recommendations_output(meeting_id):
+    # Step 1: Check if results already exist
+    results = TopRestaurants.query.filter_by(meeting_id=meeting_id).all()
+
+    if not results:
+        print("✨ No results found. Calculating your ideal restaurant!")
+        
+        try:
+            run_pipeline_for_meeting(meeting_id)
+            results = TopRestaurants.query.filter_by(meeting_id=meeting_id).all()
+            return render_template("recommendations.html", results=results)
+    
+        except ValueError as e:
+            # This is where you handle the missing meeting
+            return render_template("error.html", message=str(e))
+
+    if not results:
+            return "😬 Oops. Something went wrong while generating results.", 500
+    else:
+        print("✅ Cached results found. Serving with flair!")
+
+    # Step 2: Render the template with the results
+    return render_template("restaurant_form.html", results=results) ###
