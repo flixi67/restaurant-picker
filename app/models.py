@@ -10,7 +10,7 @@ class Meetings(db.Model):
     __tablename__ = 'meetings'
 
     id = db.Column(db.String(12), primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    #name = db.Column(db.String(100), nullable=False) # Do we need this?
     datetime = db.Column(db.Text, nullable=False)
     group_size = db.Column(db.Integer)  # CHECK constraint: group_size > 0 should be handled in application or migration
     created_at = db.Column(db.Text, default=dt.datetime.utcnow)

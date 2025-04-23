@@ -18,7 +18,7 @@ pipeline_bp = Blueprint("pipeline", __name__, url_prefix="/recommendations")
 def home():
     return render_template("layout.html")
 
-@main_bp.route("/new_meeting")
+@main_bp.route("/new_meeting", methods=['GET', 'POST'])
 def new_meeting():
     if request.method == 'POST':
         meeting_datetime = request.form['meetingdatetime']
@@ -28,7 +28,7 @@ def new_meeting():
         group_code = create_group_code()
 
         # Create ORM model and populate its fields with IDs
-        entered_meeting_data = Meetings(group_code, meeting_datetime, meeting_size)
+        entered_meeting_data = Meetings(id = group_code, datetime = meeting_datetime, group_size = meeting_size)
         # Add to session and commit
         db.session.add(entered_meeting_data)
         db.session.commit() # Write this into the Meetings
@@ -39,8 +39,8 @@ def new_meeting():
         # Render the confirmation page with meeting data and group code
         return render_template("meeting_confirmation.html", 
                                 group_code=group_code,
-                               meeting_datetime=meeting_datetime,
-                               meeting_size=meeting_size)
+                                meeting_datetime=meeting_datetime,
+                                meeting_size=meeting_size)
     
     # If it's a GET request, show the form
     return render_template("meeting_form.html")

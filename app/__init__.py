@@ -15,4 +15,8 @@ def create_app():
     app.register_blueprint(pipeline_bp)
     app.register_blueprint(main_bp)
 
+    # Ensure tables are created when the app starts
+    with app.app_context():
+        db.create_all()  # Create tables for all models
+
     return app
