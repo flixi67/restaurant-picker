@@ -17,6 +17,7 @@ def create_app():
 
     # Ensure tables are created when the app starts
     with app.app_context():
+        # Need to check if this overwrites existing tables
         db.create_all()  # Create tables for all models
 
     return app

@@ -48,7 +48,10 @@ class Members(db.Model):
     uses_cash = db.Column(db.Boolean, default=False)
     uses_card = db.Column(db.Boolean, default=False)
     is_vegetarian = db.Column(db.Boolean, default=False)
-    location_preference = db.Column(db.String(100))
+    current_location = db.Column(db.String(100))
+    budget_preference = db.Column(db.Integer)
+    rating_preference = db.Column(db.Integer)
+    location_preference = db.Column(db.Integer)
 
     # Manual check: uses_cash OR uses_card should be enforced in validation logic
     def __repr__(self):
