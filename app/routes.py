@@ -57,16 +57,17 @@ def join_meeting():
         member_location_preference = request.form['restaurantslocation']
         member_cash = request.form.get('membercash', False) # If ticked, shows True. Otherwise False.
         member_card = request.form.get('membercard') == 'on'  # Will be True if 'on', False if not present
-
-        member_veg = request.form.get('memberveggie', False)
+        member_veg = request.form.get('memberveggie') == 'on'
 
         entered_member_data = Members(meeting_id = meeting_id,
                                       budget = member_max_budget,
                                       uses_cash = member_cash,
                                       uses_card = member_card,
                                       is_vegetarian = member_veg,
-                                      location_preference = member_current_location
-                                      # Members table is missing the preferences
+                                      current_location = member_current_location,
+                                      location_preference = member_location_preference,
+                                      rating_preference = member_rating_preference, 
+                                      budget_preference = member_budget_preference
                                       )
 
         # Add to session and commit
