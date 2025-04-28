@@ -55,7 +55,7 @@ def join_meeting():
         member_budget_preference = request.form['memberbudgetpreference']
         member_rating_preference = request.form['restaurantsrating']
         member_location_preference = request.form['restaurantslocation']
-        member_cash = request.form.get('membercash', False) # If ticked, shows True. Otherwise False.
+        member_cash = request.form.get('membercash') == 'on' # If ticked, shows True. Otherwise False.
         member_card = request.form.get('membercard') == 'on'  # Will be True if 'on', False if not present
         member_veg = request.form.get('memberveggie') == 'on'
 
@@ -83,30 +83,30 @@ def join_meeting():
     # If it's a GET request, show the form
     return render_template("member_form.html")
 
-@main_bp.route("/recommendations")
-def recommendations_output():
-    return render_template("restaurant_form.html")
+# @main_bp.route("/recommendations")
+# def recommendations_output():
+#     return render_template("restaurant_redirect.html")
 
-@main_bp.route("/restaurant_preferences/<group_code>", methods=['GET', 'POST'])
-def restaurant_preferences(group_code):
-    if request.method == 'POST':
-        try:
-            candidates = pd.read_csv("cleaned_data.csv")
+# @main_bp.route("/restaurant_preferences/<group_code>", methods=['GET', 'POST'])
+# def restaurant_preferences(group_code):
+#     if request.method == 'POST':
+#         try:
+#             candidates = pd.read_csv("cleaned_data.csv")
            
-            preferences = {
-                "cuisine_type": (request.form.get("cuisine"), 0.4),
-                "dietary": (request.form.get("dietary"), 0.3)
-            }
-            budget = float(request.form.get("budget", 20))
+#             preferences = {
+#                 "cuisine_type": (request.form.get("cuisine"), 0.4),
+#                 "dietary": (request.form.get("dietary"), 0.3)
+#             }
+#             budget = float(request.form.get("budget", 20))
            
-            results = propose_restaurants(candidates, preferences, budget)
-            return render_template("recommendations.html",
-                               restaurants=results.head(10).to_dict('records'),
-                               group_code=group_code)
-        except Exception as e:
-            return f"Error processing recommendations: {str(e)}", 400
+#             results = propose_restaurants(candidates, preferences, budget)
+#             return render_template("recommendations.html",
+#                                restaurants=results.head(10).to_dict('records'),
+#                                group_code=group_code)
+#         except Exception as e:
+#             return f"Error processing recommendations: {str(e)}", 400
    
-    return render_template("restaurant_form.html", group_code=group_code)
+#     return render_template("restaurant_form.html", group_code=group_code)
 
 @main_bp.route('/recommendations', methods=['GET', 'POST'])
 def recommendations_redirect():

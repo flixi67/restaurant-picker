@@ -4,6 +4,7 @@ import requests
 from shapely.geometry import MultiPoint
 from geopy.distance import geodesic
 from decimal import Decimal
+from datetime import datetime
 
 # Internal imports
 from app.models import db, Meetings, Members, Restaurants
@@ -18,13 +19,13 @@ def run_pipeline_for_meeting(meeting_id):
         meeting = db.session.query(Meetings).get(meeting_id)
         if meeting is None:
             raise ValueError(f"❌ No meeting found with ID: {meeting_id}")
-        member_addresses = db.session.query(Members.location_preference).filter_by(meeting_id=meeting_id).all()
+        member_addresses = db.session.query(Members.current_location).filter_by(meeting_id=meeting_id).all()
         locations = [addr[0] for addr in member_addresses]
         member_payments = db.session.query(Members.uses_card).filter_by(meeting_id=meeting_id).all()
         card = any(row[0] for row in member_payments) ## calculte from member preferences
         member_diets = db.session.query(Members.is_vegetarian).filter_by(meeting_id=meeting_id).all()
         vegetarian = any(row[0] for row in member_diets) ## calculate from member preferences
-        datetime = meeting.datetime # take datetime from the meeting row we queried above
+        meeting_time = datetime.strptime(meeting.datetime, "%Y-%m-%dT%H:%M") # take datetime from the meeting row we queried above and make sure it is date time format
 
         # --- rest of your pipeline logic using locations, card, vegetarian, datetime ---
         ### write to restaurants db table (and fix names), check return statement 
@@ -88,7 +89,7 @@ def run_pipeline_for_meeting(meeting_id):
             print(json.dumps(response.json(), indent=2))
             df = flattener.flatten(response.json())
         else:
-            print(f"Error {response.status_code}: {response.text}")
+            print(f"Error {response.status_code}: {response.text} testing")
 
         # --- FILTER PIPELINE ---
 
@@ -97,9 +98,10 @@ def run_pipeline_for_meeting(meeting_id):
 
         # 2. Filter vegetarian-friendly places if requested
         if vegetarian == 1 and 'servesVegetarianFood' in df.columns:
-            df = df[df['servesVegetarianFood'] == True]
-        else:
-            raise NameError("No information on vegetarian options in database. Not filtering for dietary restrictions, please manually check.")
+            try:
+                df = df[df['servesVegetarianFood'] == True]
+            except:
+                raise NameError("No information on vegetarian options in database. Not filtering for dietary restrictions, please manually check.")
 
         # 3. Filter for debit card support if requested
         if card == 1 and 'paymentOptions.acceptsDebitCards' in df.columns:
@@ -108,7 +110,7 @@ def run_pipeline_for_meeting(meeting_id):
             raise NameError("No information on payment options in database. Not filtering for card payments, please manually check.")
         # 4. Filter open places
 
-        df = df[df.apply(lambda row: is_open_at_time(row, datetime), axis=1)]
+        df = df[df.apply(lambda row: is_open_at_time(row, meeting_time), axis=1)]
 
 
         # --- TRANSFORM PIPELINE ---
