@@ -19,13 +19,13 @@ def run_pipeline_for_meeting(meeting_id):
         meeting = db.session.query(Meetings).get(meeting_id)
         if meeting is None:
             raise ValueError(f"❌ No meeting found with ID: {meeting_id}")
-        member_addresses = db.session.query(Members.current_location).filter_by(meeting_id=meeting_id).all()
+        member_addresses = db.session.query(Members.location_preference).filter_by(meeting_id=meeting_id).all()
         locations = [addr[0] for addr in member_addresses]
         member_payments = db.session.query(Members.uses_card).filter_by(meeting_id=meeting_id).all()
         card = any(row[0] for row in member_payments) ## calculte from member preferences
         member_diets = db.session.query(Members.is_vegetarian).filter_by(meeting_id=meeting_id).all()
         vegetarian = any(row[0] for row in member_diets) ## calculate from member preferences
-        meeting_time = datetime.strptime(meeting.datetime, "%Y-%m-%dT%H:%M") # take datetime from the meeting row we queried above and make sure it is date time format
+        meeting_time = datetime.fromisoformat(meeting.datetime) # take datetime from the meeting row we queried above and make sure it is date time format
 
         # --- rest of your pipeline logic using locations, card, vegetarian, datetime ---
         ### write to restaurants db table (and fix names), check return statement 
@@ -88,6 +88,7 @@ def run_pipeline_for_meeting(meeting_id):
             print("Success! Response data:")
             print(json.dumps(response.json(), indent=2))
             df = flattener.flatten(response.json())
+            print(list(df.columns))
         else:
             print(f"Error {response.status_code}: {response.text}")
 
@@ -110,8 +111,11 @@ def run_pipeline_for_meeting(meeting_id):
             raise NameError("No information on payment options in database. Not filtering for card payments, please manually check.")
         # 4. Filter open places
 
-        df = df[df.apply(lambda row: is_open_at_time(row, meeting_time), axis=1)]
-
+        # print([col for col in df.columns if "regularOpeningHours.periods" in col])
+        # open_day_cols = [col for col in df.columns if ".open.day" in col]
+        # print(df[open_day_cols].notnull().sum())
+        # df = df[df.apply(lambda row: is_open_at_time(row, meeting_time), axis=1)]
+        # print(list(df.columns))
 
         # --- TRANSFORM PIPELINE ---
 

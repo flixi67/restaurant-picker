@@ -126,7 +126,7 @@ def recommendations_output(meeting_id):
         try:
             run_pipeline_for_meeting(meeting_id)
             results = TopRestaurants.query.filter_by(meeting_id=meeting_id).all()
-            return render_template("recommendations.html", results=results)
+            return render_template("restaurant_form.html", results=results)
     
         except ValueError as e:
             # This is where you handle the missing meeting
