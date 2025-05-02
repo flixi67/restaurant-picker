@@ -1,24 +1,45 @@
 {% extends "layout.html" %}
 
 {% block content %}
+
+<!-- Add background image to the whole page -->
+<style>
+    body {
+        background: rgb(11, 130, 124);
+        background-image: url("{{ url_for('static', filename='Front-End_images/FIDN_background2.png') }}");
+        background-repeat: no-repeat;
+        background-position: top;
+        background-size: 400px;
+        padding: 5px;
+        font-family: 'Fredoka', sans-serif;
+        margin-top: 100px;
+    }
+</style>
+
 <h2 style="color: #ffbd59; font-size: 24px; font-weight: bold;">Create a New Meeting</h2>
+
 <form action="/new_meeting" method="POST" style="max-width: 350px; margin: 0 auto;">
     <div style="margin-bottom: 1rem;">
+        
         <!-- Header Image -->
-    <img src="{{ url_for('static', filename='/Front-End_images/Icon.png') }}" 
-    alt="Meeting Illustration"
-    style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 20px;">
+        <img src="{{ url_for('static', filename='Front-End_images/Icon.png') }}" 
+             alt="Meeting Illustration"
+             style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 20px;">
+        
         <label for="meetingdatetime" style="display: block; margin-bottom: 0.5rem;">Meeting Date & Time</label>
         <input type="datetime-local" name="meetingdatetime" required 
                style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
     </div>
+
     <div style="margin-bottom: 1rem;">
         <label for="meetingsize" style="display: block; margin-bottom: 0.5rem;">Meeting Size</label>
         <input type="number" name="meetingsize" required 
                style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
     </div>
+
     <button type="submit" style="padding: 0.5rem 1rem; background-color: #0b827c; color: white; border: none; border-radius: 4px;">
         Create Meeting ID
     </button>
 </form>
+
 {% endblock %}

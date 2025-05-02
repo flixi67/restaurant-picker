@@ -2,47 +2,60 @@
 
 {% block content %}
 <style>
-  body {
-    font-family: 'Fredoka', sans-serif;
-    background-color: #f8f9fa;
-  }
   .section-title {
     text-align: center;
-    font-size: 36px;
+    font-size: 24px;
     font-weight: bold;
-    margin-top: 20px;
+    color: #333;
+    margin-bottom: 8px;
   }
+
   .section-subtitle {
     text-align: center;
     color: #6c757d;
-    font-size: 18px;
-    margin-bottom: 30px;
+    font-size: 14px;
+    margin-bottom: 16px;
   }
-  .table-container {
-    max-width: 1000px;
-    margin: auto;
-    background: #fff;
-    padding: 30px;
-    border-radius: 20px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+
+  .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
   }
+
   table {
     width: 100%;
     border-collapse: collapse;
+    margin-bottom: 16px;
+    font-size: 13px;
   }
+
   th {
-    background-color: #343a40;
-    color: #fff;
-    font-weight: bold;
-    padding: 12px;
-  }
-  td {
-    padding: 12px;
+    background-color: #0b827c;
+    color: white;
+    padding: 10px;
     text-align: center;
+    font-weight: 500;
+    font-size: 13px;
+    white-space: nowrap;
   }
+
+  td {
+    padding: 10px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+    white-space: nowrap;
+  }
+
   .alert-warning {
-    max-width: 700px;
-    margin: 30px auto;
+    font-size: 14px;
+    margin-top: 12px;
+    margin-bottom: 16px;
+    padding: 12px;
+  }
+
+  .btn-back {
+    font-size: 14px;
+    padding: 10px 20px;
   }
 </style>
 
@@ -50,16 +63,16 @@
 <p class="section-subtitle">Here are the best-matching options based on your preferences.</p>
 
 {% if restaurants %}
-<div class="table-container">
+<div class="table-wrapper">
   <table>
     <thead>
       <tr>
-        <th>Restaurant ID</th>
+        <th>ID</th>
         <th>Location</th>
-        <th>Budget (€)</th>
-        <th>Accepts Cash</th>
-        <th>Accepts Card</th>
-        <th>Vegetarian Friendly</th>
+        <th>€</th>
+        <th>Cash</th>
+        <th>Card</th>
+        <th>Veg</th>
       </tr>
     </thead>
     <tbody>
@@ -82,7 +95,7 @@
 </div>
 {% endif %}
 
-<div class="text-center mt-4">
-  <a href="/" class="btn btn-outline-primary btn-lg">⬅️ Back to Home</a>
+<div class="text-center">
+  <a href="/" class="btn btn-outline-primary btn-back">⬅️ Back to Home</a>
 </div>
 {% endblock %}
