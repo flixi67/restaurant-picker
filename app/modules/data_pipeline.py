@@ -65,7 +65,7 @@ def run_pipeline_for_meeting(meeting_id):
         # Request body
         payload = {
             "includedTypes": ["restaurant"],
-            "maxResultCount": 10,
+            "maxResultCount": 2,
             "locationRestriction": {
                 "circle": {
                     "center": {
@@ -89,7 +89,7 @@ def run_pipeline_for_meeting(meeting_id):
             print(json.dumps(response.json(), indent=2))
             df = flattener.flatten(response.json())
         else:
-            print(f"Error {response.status_code}: {response.text} testing")
+            print(f"Error {response.status_code}: {response.text}")
 
         # --- FILTER PIPELINE ---
 
@@ -116,13 +116,13 @@ def run_pipeline_for_meeting(meeting_id):
         # --- TRANSFORM PIPELINE ---
 
         # Calculating distance from centroid
-        def get_lat_lng(address):
-            result = geocoder.geocode_address(address)
-            if result:
-                return result['lat'], result['lng']
-            return None, None
+        # def get_lat_lng(address):
+        #     result = geocoder.geocode_address(address)
+        #     if result:
+        #         return result['lat'], result['lng']
+        #     return None, None
 
-        df[['lat', 'lng']] = df['formattedAddress'].apply(lambda x: pd.Series(get_lat_lng(x)))
+        df[['lat', 'lng']] = df[['location.latitude','location.longitude']]
 
         centroid_latlng = (centroid.y, centroid.x)  # geopy expects (lat, lon)
 
