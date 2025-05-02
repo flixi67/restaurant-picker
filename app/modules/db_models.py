@@ -46,7 +46,10 @@ class Members(db.Model):
     budget = db.Column(db.Integer, )
     uses_cash = db.Column(db.Boolean, default=False)
     uses_card = db.Column(db.Boolean, default=False)
+    current_location = db.Column(db.String(100), nullable=False)
     is_vegetarian = db.Column(db.Boolean, default=False)
+    rating_preference = member_rating_preference, 
+    budget_preference = member_budget_preference
     location_preference = db.Column(db.String(100), )
     CONSTRAINT = db.Column(db.String, )
 

@@ -53,7 +53,8 @@ def join_meeting():
         member_current_location = request.form['memberloc']
         member_max_budget = request.form['memberbudget']
         member_budget_preference = request.form['memberbudgetpreference']
-        member_rating_preference = request.form['restaurantsrating']
+        member_min_rating = request.form['memberminrating']
+        member_rating_preference = request.form['ratingpreference']
         member_location_preference = request.form['restaurantslocation']
         member_cash = request.form.get('membercash') == 'on' # If ticked, shows True. Otherwise False.
         member_card = request.form.get('membercard') == 'on'  # Will be True if 'on', False if not present
@@ -65,6 +66,7 @@ def join_meeting():
                                       uses_card = member_card,
                                       is_vegetarian = member_veg,
                                       current_location = member_current_location,
+                                      min_rating = member_min_rating,
                                       location_preference = member_location_preference,
                                       rating_preference = member_rating_preference, 
                                       budget_preference = member_budget_preference
@@ -126,7 +128,7 @@ def recommendations_output(meeting_id):
         try:
             run_pipeline_for_meeting(meeting_id)
             results = TopRestaurants.query.filter_by(meeting_id=meeting_id).all()
-            return render_template("restaurant_form.html", results=results)
+            return render_template("recommendations.html", results=results)
     
         except ValueError as e:
             # This is where you handle the missing meeting
@@ -138,4 +140,4 @@ def recommendations_output(meeting_id):
         print("✅ Cached results found. Serving with flair!")
 
     # Step 2: Render the template with the results
-    return render_template("restaurant_form.html", results=results) ###
+    return render_template("recommendations.html", results=results) ###

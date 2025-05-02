@@ -12,6 +12,7 @@ from app.context import pipeline_context
 from app.modules.geocode import GoogleGeocodingAPI
 from app.modules.flatten import FlattenPlacesResponse
 from app.modules.is_open import is_open_at_time
+from app.matching_algorithm import Group, propose_restaurants
 
 def run_pipeline_for_meeting(meeting_id):
     with pipeline_context():
@@ -19,7 +20,7 @@ def run_pipeline_for_meeting(meeting_id):
         meeting = db.session.query(Meetings).get(meeting_id)
         if meeting is None:
             raise ValueError(f"❌ No meeting found with ID: {meeting_id}")
-        member_addresses = db.session.query(Members.location_preference).filter_by(meeting_id=meeting_id).all()
+        member_addresses = db.session.query(Members.current_location).filter_by(meeting_id=meeting_id).all()
         locations = [addr[0] for addr in member_addresses]
         member_payments = db.session.query(Members.uses_card).filter_by(meeting_id=meeting_id).all()
         card = any(row[0] for row in member_payments) ## calculte from member preferences
@@ -50,8 +51,15 @@ def run_pipeline_for_meeting(meeting_id):
             else:
                 print(f"For the adress: {address} geocoding failed. It will not be included.")
         
+        # Create centroid
         centroid = MultiPoint(points).centroid
-        if centroid:
+
+        # Check if centroid is valid
+        
+        # Check if centroid is empty before accessing coordinates
+        if centroid.is_empty:
+            print("Error: Centroid coordinates are empty, cannot proceed.")
+        else:
             print("Centroid Latitude:", centroid.x)
             print("Centroid Longitude:", centroid.y)
 
@@ -63,19 +71,22 @@ def run_pipeline_for_meeting(meeting_id):
         }
 
         # Request body
-        payload = {
-            "includedTypes": ["restaurant"],
-            "maxResultCount": 2,
-            "locationRestriction": {
-                "circle": {
-                    "center": {
-                        "latitude": centroid.x,
-                        "longitude": centroid.y
-                    },
-                    "radius": 500.0
+        if centroid.is_empty:
+            print("Error: Centroid coordinates are None.")
+        else:
+            payload = {
+                "includedTypes": ["restaurant"],
+                "maxResultCount": 2,
+                "locationRestriction": {
+                    "circle": {
+                        "center": {
+                            "latitude": centroid.x,
+                            "longitude": centroid.y
+                        },
+                        "radius": 500.0
+                    }
                 }
             }
-        }
 
         # Make the request
         response = requests.post(url, headers=headers, data=json.dumps(payload))
@@ -199,6 +210,26 @@ def run_pipeline_for_meeting(meeting_id):
         # Bulk insert
         db.session.bulk_save_objects(restaurant_objects)
         db.session.commit()
+# --- NEW CODE --- #
+        # Create a Group object for the meeting
+        group = Group(meeting_id)
+
+        # Calculate group preferences based on the group object
+        group_preferences = group.calculate_group_preferences()
+
+        # Fetch restaurant candidates
+        # Fetch restaurant candidates for the current meeting
+        candidates = db.session.query(Restaurants).filter_by(meeting_id=meeting.id).all()
+
+        # Pass the candidates and group preferences to the propose_restaurants function
+        recommended_restaurants = propose_restaurants(candidates, group_preferences, meeting_id)
+
+        # Optionally: Do something with the recommended restaurants, like saving them to the DB or logging
+        print(f"Recommended restaurants for meeting {meeting_id}:")
+        for restaurant in recommended_restaurants:
+            print(f"Restaurant ID: {restaurant.id}, Composite Score: {restaurant.composite_score}")
+
+        return {"status": "success", "meeting_id": meeting_id, "recommended_restaurants": recommended_restaurants}
 
         # At the end, return the DataFrame or result
-        return {"status": "success", "meeting_id": meeting_id, "locations": df_db}
+        #return {"status": "success", "meeting_id": meeting_id, "locations": df_db}

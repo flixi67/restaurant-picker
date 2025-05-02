@@ -28,7 +28,7 @@ def create_group_code():
 
 # Create a class for a single group member
 class Member:
-    def __init__(self, preferences):
+    def __init__(self, meeting_id):
         """
         preferences should be in the following format:
 
@@ -38,14 +38,43 @@ class Member:
             'dist_from_centroid': distance_weighting
         }
         """
-        self.preferences = preferences
+        self.meeting_id = meeting_id
+
+    
 
 # Create a class for the group
 class Group:
-    def __init__(self, members):
-        self.members = members
+    def __init__(self, meeting_id):
+        self.meeting_id = meeting_id
+        self.members = self.get_members_for_group()
+        
+    def get_members_for_group(self):
+        """
+        Fetches all members associated with the given meeting ID.
+        
+        Returns:
+            A list of members' preferences.
+        """
+        # Fetch member data from the database
+        members_data = db.session.query(Members).filter_by(meeting_id=self.meeting_id).all()
+        members_preferences = []
+        
+        # Collect preferences for each member
+        for member in members_data:
+            preferences = {
+                'rating_preference': (member.min_rating, member.rating_preference),
+                'max_budget': (member.budget, member.budget_preference),
+                'dist_from_centroid': member.location_preference,
+                'uses_cash': member.uses_cash,
+                'uses_card': member.uses_card,
+                'is_vegetarian': member.is_vegetarian,
+                'current_location': member.current_location
+            }
+            members_preferences.append(preferences)
+        
+        return members_preferences
 
-    def group_preferences(self):
+    def calculate_group_preferences(self):
         """
         Calculate the group preferences based on individual member preferences.
         Returns a dictionary with combined group preferences.
@@ -59,11 +88,11 @@ class Group:
 
         # Iterate through each member's preferences
         for member in self.members:
-            rating_pref = member.preferences['rating'][0]
-            rating_weight = member.preferences['rating'][1]
-            budget_max = member.preferences['max_budget'][0]  # Corrected: use the first element for max budget
-            budget_weight = member.preferences['max_budget'][1]
-            dist_weight = member.preferences['dist_from_centroid']
+            rating_pref = member['rating_preference'][0]
+            rating_weight = member['rating_preference'][1]
+            budget_max = member['max_budget'][0]  # Corrected: use the first element for max budget
+            budget_weight = member['max_budget'][1]
+            dist_weight = member['dist_from_centroid']
 
             # Update group preferences
             if rating_pref < group_min_rating:
@@ -74,10 +103,11 @@ class Group:
             group_budget_weight += budget_weight
             group_dist_weight += dist_weight
 
-        # Calculate the average of weightings
-        group_rating_weight /= len(self.members)
-        group_budget_weight /= len(self.members)
-        group_dist_weight /= len(self.members)
+        # Normalize weights by number of members
+        num_members = len(self.members)
+        group_rating_weight /= num_members
+        group_budget_weight /= num_members
+        group_dist_weight /= num_members
 
         # Create the group preferences dictionary
         group_preferences = {
@@ -91,6 +121,8 @@ class Group:
 def propose_restaurants(candidates, group_preferences, meeting_id):
     """
     Recommends restaurants with budget constraints and dietary options.
+    Looks at restaurants that were given from data_pipeline.py and filters them
+    based on group preferences.
     
     Args:
         candidates: DataFrame of restaurants from spatial filtering
@@ -107,17 +139,17 @@ def propose_restaurants(candidates, group_preferences, meeting_id):
     with pipeline_context():
         # Fetch from DB
         candidates = db.session.query(Restaurants).filter_by(meeting_id=meeting_id).all()
-        preferences = db.session.query(Members).filter_by(meeting_id=meeting_id).all()
+        #preferences = db.session.query(Members).filter_by(meeting_id=meeting_id).all()
         
         # Create outcome vector
         scores = []
 
         # Iterate through restaurants
-        for _, restaurant in candidates.iterrows():
+        for restaurant in candidates:
             score = 0
 
             # 1. Budget constraint (hard filter + soft scoring)
-            if restaurant['end_price'] > group_preferences['max_budget_per_person'][0]:
+            if restaurant.end_price > group_preferences['max_budget_per_person'][0]:
                 continue  # Skip if over budget
 
             budget_score = 1 - (restaurant['end_price'] / group_preferences['max_budget_per_person'][0])
@@ -132,9 +164,18 @@ def propose_restaurants(candidates, group_preferences, meeting_id):
 
             scores.append(score)
 
+        # Apply scoring and sort restaurants by composite score
+        for i, restaurant in enumerate(candidates):
+            restaurant.composite_score = scores[i]
+
+        # Sort by composite score in descending order
+        sorted_restaurants = sorted(candidates, key=lambda r: r.composite_score, reverse=True)
+
+        return sorted_restaurants
+
         # Apply scoring and filter
-        candidates['composite_score'] = scores
-        return candidates.sort_values('composite_score', ascending=False)
+        #candidates['composite_score'] = scores
+        #return candidates.sort_values('composite_score', ascending=False)
 
 
 """ ---- Functions that are no longer needed ----
