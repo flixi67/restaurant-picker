@@ -120,24 +120,27 @@ def recommendations_redirect():
 @pipeline_bp.route("/<string:meeting_id>")
 def recommendations_output(meeting_id):
     # Step 1: Check if results already exist
-    results = TopRestaurants.query.filter_by(meeting_id=meeting_id).all()
+    results = Restaurants.query.filter_by(meeting_id=meeting_id).all()
 
+    # Step 2: If no results, run the pipelin
     if not results:
-        print("✨ No results found. Calculating your ideal restaurant!")
-        
+        print("✨ No results found. Calculating your ideal restaurant!")   
         try:
             run_pipeline_for_meeting(meeting_id)
-            results = TopRestaurants.query.filter_by(meeting_id=meeting_id).all()
+            print("✨ Pipeline completed successfully!")
+            results = Restaurants.query.filter_by(meeting_id=meeting_id).all()
+            print(f"✨ Found {len(results)} results after recalculation!")
             return render_template("recommendations.html", results=results)
-    
         except ValueError as e:
             # This is where you handle the missing meeting
             return render_template("error.html", message=str(e))
 
+    # Step 3: Check if there are results after the recalculation
     if not results:
-            return "😬 Oops. Something went wrong while generating results.", 500
+        print("❌ No results after recalculation!")
+        return "😬 Oops. Something went wrong while generating results.", 500
     else:
         print("✅ Cached results found. Serving with flair!")
 
-    # Step 2: Render the template with the results
+    # Step 4: Render the template with the results
     return render_template("recommendations.html", results=results) ###

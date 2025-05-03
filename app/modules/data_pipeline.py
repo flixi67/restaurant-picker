@@ -83,7 +83,7 @@ def run_pipeline_for_meeting(meeting_id):
                             "latitude": centroid.x,
                             "longitude": centroid.y
                         },
-                        "radius": 500.0
+                        "radius": 500.0 # Originally 500.0
                     }
                 }
             }
@@ -102,6 +102,8 @@ def run_pipeline_for_meeting(meeting_id):
             print(list(df.columns))
         else:
             print(f"Error {response.status_code}: {response.text}")
+
+        print(f"Number of rows in the flattened dataframe: {len(df)}")
 
         # --- FILTER PIPELINE ---
 
@@ -170,6 +172,8 @@ def run_pipeline_for_meeting(meeting_id):
         # Filter the dataframe
         df_db = df[columns_to_keep].copy()
 
+        print(f"Number of rows in the DataFrame before filtering: {len(df_db)}")
+
         # Optional: rename to match your SQLAlchemy model field names
         df_db.rename(columns={
             "googleMapsUri": "google_maps_uri",
@@ -203,14 +207,20 @@ def run_pipeline_for_meeting(meeting_id):
                 accepts_cash_only=bool(row["accepts_cash_only"]),
                 start_price=Decimal(row["start_price"]) if not pd.isna(row["start_price"]) else None,
                 end_price=Decimal(row["end_price"]) if not pd.isna(row["end_price"]) else None,
-                price_level=row["price_level"]
+                price_level=row["price_level"],
+                # NEW CODE
+                distance_from_centroid = calc_distance(row) if pd.notnull(row['lat']) and pd.notnull(row['lng']) else None
             )
             restaurant_objects.append(restaurant)
+
+        print(f"Number of restaurant objects created: {len(restaurant_objects)}")
 
         # Bulk insert
         db.session.bulk_save_objects(restaurant_objects)
         db.session.commit()
+
 # --- NEW CODE --- #
+
         # Create a Group object for the meeting
         group = Group(meeting_id)
 
@@ -226,6 +236,7 @@ def run_pipeline_for_meeting(meeting_id):
 
         # Optionally: Do something with the recommended restaurants, like saving them to the DB or logging
         print(f"Recommended restaurants for meeting {meeting_id}:")
+
         for restaurant in recommended_restaurants:
             print(f"Restaurant ID: {restaurant.id}, Composite Score: {restaurant.composite_score}")
 

@@ -62,7 +62,8 @@
 <div class="section-title">🍽️ Restaurant Suggestions</div>
 <p class="section-subtitle">Here are the best-matching options based on your preferences.</p>
 
-{% if restaurants %}
+
+{% if results %}
 <div class="table-wrapper">
   <table>
     <thead>
@@ -76,14 +77,13 @@
       </tr>
     </thead>
     <tbody>
-      {% for r in restaurants %}
+      {% for r in results %}
       <tr>
-        <td>{{ r.restaurantid }}</td>
-        <td>{{ r.restaurantloc }}</td>
-        <td>{{ r.restaurantbudget }}</td>
-        <td>{{ 'Yes' if r.restaurantcash else 'No' }}</td>
-        <td>{{ 'Yes' if r.restaurantcard else 'No' }}</td>
-        <td>{{ 'Yes' if r.restaurantveggie else 'No' }}</td>
+        <td>{{ r.id }}</td>
+        <td>{{ r.formatted_address }}</td>
+        <td>{{ r.end_price }}</td>
+        <td>{{ 'Yes' if r.accepts_cash_only else 'No' }}</td>
+        <td>{{ 'Yes' if r.serves_vegetarian_food else 'No' }}</td>
       </tr>
       {% endfor %}
     </tbody>

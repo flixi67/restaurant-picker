@@ -26,19 +26,19 @@ def create_group_code():
         if code not in existing_codes:
             return code  # Return the code if it's unique
 
-# Create a class for a single group member
-class Member:
-    def __init__(self, meeting_id):
-        """
-        preferences should be in the following format:
+# # Create a class for a single group member
+# class Member:
+#     def __init__(self, meeting_id):
+#         """
+#         preferences should be in the following format:
 
-        preferences = {
-            'rating': (min_rating, rating_weighting),
-            'max_budget': (max_budget, budget_weighting),
-            'dist_from_centroid': distance_weighting
-        }
-        """
-        self.meeting_id = meeting_id
+#         preferences = {
+#             'rating': (min_rating, rating_weighting),
+#             'max_budget': (max_budget, budget_weighting),
+#             'dist_from_centroid': distance_weighting
+#         }
+#         """
+#         self.meeting_id = meeting_id
 
     
 
@@ -127,7 +127,7 @@ def propose_restaurants(candidates, group_preferences, meeting_id):
     Args:
         candidates: DataFrame of restaurants from spatial filtering
         group_preferences: {
-            'distance_from_centroid':, 
+            'dist':, 
             'rating': ('4 | 5', 0.4),
             'max_budget_per_person': Maximum $$ per person (e.g., 20)
         }
@@ -150,17 +150,20 @@ def propose_restaurants(candidates, group_preferences, meeting_id):
 
             # 1. Budget constraint (hard filter + soft scoring)
             if restaurant.end_price > group_preferences['max_budget_per_person'][0]:
-                continue  # Skip if over budget
-
-            budget_score = 1 - (restaurant['end_price'] / group_preferences['max_budget_per_person'][0])
-            score += 0.2 * budget_score
+                continue
+            else:
+                budget_score = 1 - (restaurant.end_price / group_preferences['max_budget_per_person'][0])
+                score += group_preferences['max_budget_per_person'][1] * budget_score
 
             # 2. Rating (normalized 0-1 scale)
-            score += 0.1 * (restaurant['rating'] / 5)
+            if restaurant.rating < group_preferences['rating'][0]:
+                continue
+            else:
+                score += group_preferences['rating'][1] * (restaurant.rating / 5)
 
             # 3. Distance from centroid (closer = better)
-            if 'distance_from_centroid' in restaurant:
-                score += 0.05 * (1 / (1 + restaurant['distance_from_centroid']))  # Example: inverse distance
+            #if 'distance_from_centroid' in restaurant:
+            score += group_preferences['dist'] * (1 / (1 + restaurant.distance_from_centroid))  # Example: inverse distance
 
             scores.append(score)
 

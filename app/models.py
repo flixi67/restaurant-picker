@@ -35,6 +35,8 @@ class Restaurants(db.Model):
     start_price = db.Column(db.Numeric)
     end_price = db.Column(db.Numeric)
     price_level = db.Column(db.String(50))
+    distance_from_centroid = db.Column(db.Float)
+    composite_score = db.Column(db.Float)
 
     def __repr__(self):
         return f"<Restaurant {self.id}>"
