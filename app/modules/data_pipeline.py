@@ -76,7 +76,7 @@ def run_pipeline_for_meeting(meeting_id):
         else:
             payload = {
                 "includedTypes": ["restaurant"],
-                "maxResultCount": 2,
+                "maxResultCount": 50,
                 "locationRestriction": {
                     "circle": {
                         "center": {
