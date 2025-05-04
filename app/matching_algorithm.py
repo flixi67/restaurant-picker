@@ -153,17 +153,17 @@ def propose_restaurants(candidates, group_preferences, meeting_id):
                 continue
             else:
                 budget_score = 1 - (restaurant.end_price / group_preferences['max_budget_per_person'][0])
-                score += group_preferences['max_budget_per_person'][1] * budget_score
+                score += float(group_preferences['max_budget_per_person'][1] * budget_score)
 
             # 2. Rating (normalized 0-1 scale)
             if restaurant.rating < group_preferences['rating'][0]:
                 continue
             else:
-                score += group_preferences['rating'][1] * (restaurant.rating / 5)
+                score += float(group_preferences['rating'][1] * (restaurant.rating / 5))
 
             # 3. Distance from centroid (closer = better)
             #if 'distance_from_centroid' in restaurant:
-            score += group_preferences['dist'] * (1 / (1 + restaurant.distance_from_centroid))  # Example: inverse distance
+            score += float(group_preferences['dist'] * (1 / (1 + restaurant.distance_from_centroid)))  # Example: inverse distance
 
             scores.append(score)
 
