@@ -60,7 +60,7 @@
 </style>
 
 <div class="section-title">🍽️ Restaurant Suggestions</div>
-<p class="section-subtitle">Here are the best-matching options based on your preferences.</p>
+<p class="section-subtitle">Here are the best-matching options based on your preferences, based on {{ submitted_count }} out of {{ group_size }} members' data.</p>
 
 
 {% if results %}
@@ -72,7 +72,6 @@
         <th>Location</th>
         <th>€</th>
         <th>Cash</th>
-        <th>Card</th>
         <th>Veg</th>
       </tr>
     </thead>

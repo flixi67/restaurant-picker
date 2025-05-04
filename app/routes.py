@@ -120,28 +120,28 @@ def recommendations_redirect():
 
 @pipeline_bp.route("/<string:meeting_id>")
 def recommendations_output(meeting_id):
-    # Step 1: Check if results already exist
-    results = Restaurants.query.filter_by(meeting_id=meeting_id).all()
+    
+    meeting = Meetings.query.filter_by(id=meeting_id).first()
+    if not meeting:
+        return render_template("error.html", message="Meeting not found.")
 
-    # Step 2: If no results, run the pipelin
-    if not results:
-        print("✨ No results found. Calculating your ideal restaurant!")   
-        try:
-            run_pipeline_for_meeting(meeting_id)
-            print("✨ Pipeline completed successfully!")
-            results = Restaurants.query.filter_by(meeting_id=meeting_id).all()
-            print(f"✨ Found {len(results)} results after recalculation!")
-            return render_template("recommendations.html", results=results)
-        except ValueError as e:
-            # This is where you handle the missing meeting
-            return render_template("error.html", message=str(e))
+    group_size = meeting.group_size
 
-    # Step 3: Check if there are results after the recalculation
-    if not results:
-        print("❌ No results after recalculation!")
-        return "😬 Oops. Something went wrong while generating results.", 500
-    else:
-        print("✅ Cached results found. Serving with flair!")
+    submitted_count = Members.query.filter_by(meeting_id=meeting_id).count()
 
-    # Step 4: Render the template with the results
-    return render_template("recommendations.html", results=results) ###
+    print(f"🔁 Running pipeline with {submitted_count}/{group_size} participants.")
+    try:
+        run_pipeline_for_meeting(meeting_id)
+        print("✨ Pipeline completed successfully!")
+        results = Restaurants.query.filter_by(meeting_id=meeting_id).all()
+        print(f"✨ Found {len(results)} results!")
+        
+        return render_template(
+            "recommendations.html",
+            results=results,
+            submitted_count=submitted_count,
+            group_size=group_size
+        )
+    except ValueError as e:
+        return render_template("error.html", message=str(e))
+

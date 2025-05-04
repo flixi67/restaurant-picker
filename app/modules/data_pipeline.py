@@ -221,6 +221,9 @@ def run_pipeline_for_meeting(meeting_id):
 
         print(f"Number of restaurant objects created: {len(restaurant_objects)}")
 
+        # Delete previous cached results
+        db.session.query(Restaurants).filter_by(meeting_id=meeting_id).delete()
+        db.session.commit()
         # Bulk insert
         db.session.bulk_save_objects(restaurant_objects)
         db.session.commit()
