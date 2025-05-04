@@ -80,6 +80,7 @@ def join_meeting():
         return render_template("member_confirmation.html",
                                meeting_id = meeting_id,
                                member_current_location=member_current_location,
+                               member_budget=member_max_budget
                                )
     
     # If it's a GET request, show the form

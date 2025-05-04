@@ -76,7 +76,7 @@ def run_pipeline_for_meeting(meeting_id):
         else:
             payload = {
                 "includedTypes": ["restaurant"],
-                "maxResultCount": 50,
+                "maxResultCount": 20,
                 "locationRestriction": {
                     "circle": {
                         "center": {
@@ -94,18 +94,22 @@ def run_pipeline_for_meeting(meeting_id):
         # Ininiate flattener
         flattener = FlattenPlacesResponse(full_scope=True)
 
+        print("Actual status code from response:", response.status_code)
         # Print response
         if response.status_code == 200:
             print("Success! Response data:")
             print(json.dumps(response.json(), indent=2))
             try:
-                df = flattener.flatten(response_data)   
+                df = flattener.flatten(response.json())   
                 print(df)
             except Exception as e:
                 print("⚠️ Error flattening response:", e)
                 return {"status": "error", "message": "Flattening failed."}
         else:
-            print(f"Error {response.status_code}: Hello I am empty.")
+            print(f"Error {response.status_code}: {response.response_text}")
+            df = pd.DataFrame()
+        
+        print(df)
 
         # --- FILTER PIPELINE ---
 
@@ -211,7 +215,7 @@ def run_pipeline_for_meeting(meeting_id):
                 start_price=Decimal(row["start_price"]) if not pd.isna(row["start_price"]) else None,
                 end_price=Decimal(row["end_price"]) if not pd.isna(row["end_price"]) else None,
                 price_level=row["price_level"],
-                distance_from_centroid=Decimal(row["distance_from_cetnroid"]) if not pd.isna(row["end_price"]) else None
+                distance_from_centroid=float(row["distance_from_centroid"]) if not pd.isna(row["distance_from_centroid"]) else None
             )
             restaurant_objects.append(restaurant)
 
