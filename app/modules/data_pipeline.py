@@ -83,7 +83,7 @@ def run_pipeline_for_meeting(meeting_id):
                             "latitude": centroid.x,
                             "longitude": centroid.y
                         },
-                        "radius": 500.0 # Originally 500.0
+                        "radius": 500.0
                     }
                 }
             }
@@ -98,12 +98,14 @@ def run_pipeline_for_meeting(meeting_id):
         if response.status_code == 200:
             print("Success! Response data:")
             print(json.dumps(response.json(), indent=2))
-            df = flattener.flatten(response.json())
-            print(list(df.columns))
+            try:
+                df = flattener.flatten(response_data)   
+                print(df)
+            except Exception as e:
+                print("⚠️ Error flattening response:", e)
+                return {"status": "error", "message": "Flattening failed."}
         else:
-            print(f"Error {response.status_code}: {response.text}")
-
-        print(f"Number of rows in the flattened dataframe: {len(df)}")
+            print(f"Error {response.status_code}: Hello I am empty.")
 
         # --- FILTER PIPELINE ---
 
@@ -166,13 +168,14 @@ def run_pipeline_for_meeting(meeting_id):
             "paymentOptions.acceptsCashOnly",
             "priceRange.startPrice.units",
             "priceRange.endPrice.units",
-            "priceLevel"
+            "priceLevel",
+            "distance_from_centroid"
         ]
 
         # Filter the dataframe
         df_db = df[columns_to_keep].copy()
 
-        print(f"Number of rows in the DataFrame before filtering: {len(df_db)}")
+        print(df_db["distance_from_centroid"])
 
         # Optional: rename to match your SQLAlchemy model field names
         df_db.rename(columns={
@@ -208,8 +211,7 @@ def run_pipeline_for_meeting(meeting_id):
                 start_price=Decimal(row["start_price"]) if not pd.isna(row["start_price"]) else None,
                 end_price=Decimal(row["end_price"]) if not pd.isna(row["end_price"]) else None,
                 price_level=row["price_level"],
-                # NEW CODE
-                distance_from_centroid = calc_distance(row) if pd.notnull(row['lat']) and pd.notnull(row['lng']) else None
+                distance_from_centroid=Decimal(row["distance_from_cetnroid"]) if not pd.isna(row["end_price"]) else None
             )
             restaurant_objects.append(restaurant)
 
