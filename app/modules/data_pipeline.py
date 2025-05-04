@@ -160,6 +160,7 @@ def run_pipeline_for_meeting(meeting_id):
 
         # Only select the columns that map to your Restaurants model attributes
         columns_to_keep = [
+            col for col in [
             "id",
             "rating",
             "googleMapsUri",
@@ -174,6 +175,7 @@ def run_pipeline_for_meeting(meeting_id):
             "priceRange.endPrice.units",
             "priceLevel",
             "distance_from_centroid"
+        ] if col in df.columns
         ]
 
         # Filter the dataframe
@@ -200,24 +202,38 @@ def run_pipeline_for_meeting(meeting_id):
         restaurant_objects = []
 
         for _, row in df_db.iterrows():
+            try:
+                start_price = Decimal(row["start_price"]) if pd.notna(row["start_price"]) else None
+            except:
+                print(f"⚠️ Could not convert start_price for restaurant {row['id']}: {row['start_price']}")
+                start_price = None
+
+            try:
+                end_price = Decimal(row["end_price"]) if pd.notna(row["end_price"]) else None
+            except:
+                print(f"⚠️ Could not convert end_price for restaurant {row['id']}: {row['end_price']}")
+                end_price = None
+
             restaurant = Restaurants(
-                id=row["id"],
-                meeting_id=meeting.id, # this line is different because it uses the id from "meeting" ovject we fetched before
-                rating=Decimal(row["rating"]) if not pd.isna(row["rating"]) else None,
-                google_maps_uri=row["google_maps_uri"],
-                website_uri=row["website_uri"],
-                formatted_address=row["formatted_address"],
-                international_phone_number=row["international_phone_number"],
-                primary_type=row["primary_type"],
-                user_rating_count=int(row["user_rating_count"]) if not pd.isna(row["user_rating_count"]) else None,
-                serves_vegetarian_food=bool(row["serves_vegetarian_food"]),
-                accepts_cash_only=bool(row["accepts_cash_only"]),
-                start_price=Decimal(row["start_price"]) if not pd.isna(row["start_price"]) else None,
-                end_price=Decimal(row["end_price"]) if not pd.isna(row["end_price"]) else None,
-                price_level=row["price_level"],
-                distance_from_centroid=float(row["distance_from_centroid"]) if not pd.isna(row["distance_from_centroid"]) else None
-            )
-            restaurant_objects.append(restaurant)
+            id=row["id"],
+            meeting_id=meeting.id,
+            rating=Decimal(row["rating"]) if not pd.isna(row["rating"]) else None,
+            google_maps_uri=row["google_maps_uri"],
+            website_uri=row["website_uri"],
+            formatted_address=row["formatted_address"],
+            international_phone_number=row["international_phone_number"],
+            primary_type=row["primary_type"],
+            user_rating_count=int(row["user_rating_count"]) if not pd.isna(row["user_rating_count"]) else None,
+            serves_vegetarian_food=bool(row["serves_vegetarian_food"]),
+            accepts_cash_only=bool(row["accepts_cash_only"]),
+            start_price=start_price,
+            end_price=end_price,
+            price_level=row["price_level"],
+            distance_from_centroid=float(row["distance_from_centroid"]) if not pd.isna(row["distance_from_centroid"]) else None
+        )
+
+        restaurant_objects.append(restaurant)
+
 
         print(f"Number of restaurant objects created: {len(restaurant_objects)}")
 

@@ -148,6 +148,9 @@ def propose_restaurants(candidates, group_preferences, meeting_id):
         for restaurant in candidates:
             score = 0
 
+            if restaurant.end_price is None:
+                print(f"[❗] Restaurant {restaurant.id} has no end_price")
+
             # 1. Budget constraint (hard filter + soft scoring)
             if restaurant.end_price > group_preferences['max_budget_per_person'][0]:
                 continue
