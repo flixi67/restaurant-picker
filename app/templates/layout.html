@@ -105,6 +105,39 @@
         <!-- Main page content -->
         <div class="content-container">
             {% block content %}
+            <!-- Description of the app -->
+            <div class="app-description">
+                <h2>How to Use the Restaurant Matching App</h2>
+                <ol>
+                    <li>
+                        <strong>Click <a href="{{ url_for('main.new_meeting') }}">‘New Meeting’</a></strong> to start a new session.  
+                        Set the group size, preferred date, and time.  
+                        You will receive a unique <strong>Meeting ID</strong>.
+                    </li>
+                    <li>
+                        <strong>Go to <a href="{{ url_for('main.join_meeting') }}">‘Add Member’</a></strong> and enter the Meeting ID.  
+                        Fill in your preferences:
+                        <ul>
+                            <li>Your location</li>
+                            <li>Maximum budget</li>
+                            <li>Minimum restaurant rating</li>
+                            <li>Importance ranking (1–3) for:
+                                <ul>
+                                    <li>Budget</li>
+                                    <li>Rating</li>
+                                    <li>Closeness of the restaurant</li>
+                                </ul>
+                            </li>
+                            <li>Payment method (Card, Cash)</li>
+                            <li>Dietary preference (Vegetarian)</li>
+                        </ul>
+                    </li>
+                    <li>
+                        Once all members have submitted their preferences, go to <strong><a href = "{{url_for('main.recommendations_redirect')}}">‘Get Results’</a></strong>,  
+                        enter the Meeting ID, and view the restaurant recommendations customized for your group.
+                    </li>
+                </ol>
+            </div>                
             {% endblock %}
         </div>
 

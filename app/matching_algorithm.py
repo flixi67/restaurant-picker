@@ -148,13 +148,26 @@ def propose_restaurants(candidates, group_preferences, meeting_id):
         for restaurant in candidates:
             score = 0
 
+            # 1. Budget constraint (hard filter + soft scoring)
+            # Check if the restaurant data has an end price
             if restaurant.end_price is None:
                 print(f"[❗] Restaurant {restaurant.id} has no end_price")
-
-            # 1. Budget constraint (hard filter + soft scoring)
-            if restaurant.end_price > group_preferences['max_budget_per_person'][0]:
+                # If there is no end price, and there is only one candidate, we still include it
+                if restaurant.start_price is None:
+                    if len(candidates) == 1:
+                        print("Only one restaurant candidate with no end_price, therefore including it.")
+                        placeholder_price = 50
+                        budget_score = 1 - ( placeholder_price / group_preferences['max_budget_per_person'][0])
+                        score += float(group_preferences['max_budget_per_person'][1]) * float(budget_score)
+                else:
+                    # If there is no end price, but there is a start price, we assume it is within budget
+                    budget_score = 1 - ( restaurant.start_price / group_preferences['max_budget_per_person'][0])
+                    score += float(group_preferences['max_budget_per_person'][1]) * float(budget_score)
+            # If the restaurant has an end price, and it exceeds the group's budget, then skip it
+            elif restaurant.end_price > group_preferences['max_budget_per_person'][0]:
                 continue
             else:
+                # If it is within budget, then calculate the score
                 budget_score = 1 - (restaurant.end_price / group_preferences['max_budget_per_person'][0])
                 score += float(group_preferences['max_budget_per_person'][1]) * float(budget_score)
 

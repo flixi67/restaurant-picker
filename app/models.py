@@ -22,6 +22,8 @@ class Restaurants(db.Model):
     __tablename__ = 'restaurants'
 
     id = db.Column(db.String(100), primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
     meeting_id = db.Column(db.String, db.ForeignKey('meetings.id', ondelete='CASCADE'), nullable=False)
     rating = db.Column(db.Numeric(3, 2), nullable=True)
     google_maps_uri = db.Column(db.String(200), nullable=False)

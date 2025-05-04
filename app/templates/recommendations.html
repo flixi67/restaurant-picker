@@ -41,7 +41,7 @@
 
   td {
     padding: 10px;
-    text-align: center;
+    text-align: left;
     border-bottom: 1px solid #ddd;
     white-space: nowrap;
   }
@@ -57,6 +57,17 @@
     font-size: 14px;
     padding: 10px 20px;
   }
+
+  h3 {
+      font-family: sans-serif;
+      font-size: 1.5rem;
+      color: #04498d;
+      background-color: #f1f1f1;
+      padding: 10px 15px;
+      margin-top: 30px;
+      border-left: 6px solid #0064e6;
+      border-radius: 4px;
+    }
 </style>
 
 <div class="section-title">🍽️ Restaurant Suggestions</div>
@@ -64,34 +75,48 @@
 
 
 {% if results %}
-<div class="table-wrapper">
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Location</th>
-        <th>€</th>
-        <th>Cash</th>
-        <th>Veg</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in results %}
-      <tr>
-        <td>{{ r.id }}</td>
-        <td>{{ r.formatted_address }}</td>
-        <td>{{ r.end_price }}</td>
-        <td>{{ 'Yes' if r.accepts_cash_only else 'No' }}</td>
-        <td>{{ 'Yes' if r.serves_vegetarian_food else 'No' }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+  {% for r in results %}
+  <!-- Loops through and displays a results table for each restaurant -->
+  <h3>Restaurant {{ loop.index }}: <a href="{{ r.google_maps_uri }}" target="_blank">{{ r.name }}</a></h3>
+  <div class="table-wrapper">
+      <table>
+        <tbody>
+          <tr>
+            <th>Location</th>
+            <td>{{ r.formatted_address }}</td>
+          </tr>
+          <tr>
+            <th>Cuisine</th>
+            <td>{{ r.primary_type }}</td>
+          </tr>
+          {% if r.end_price %}
+          <tr>
+            <th>€</th>
+            <td>{{ r.end_price|round(0) }}</td>
+          </tr>
+          {% endif %}
+          <tr>
+            <th>Cash Only</th>
+            <td>{{ 'Yes' if r.accepts_cash_only else 'No' }}</td>
+          </tr>
+          <tr>
+            <th>Vegetarian</th>
+            <td>{{ 'Yes' if r.serves_vegetarian_food else 'No' }}</td>
+          </tr>
+          {% if r.description %}
+          <tr>
+            <th>Description</th>
+            <td>{{ r.description }}</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  {% endfor %}
 {% else %}
-<div class="alert alert-warning text-center" role="alert">
-  😔 No restaurant matches found for this meeting.
-</div>
+  <div class="alert alert-warning text-center" role="alert">
+    😔 No restaurant matches found for this meeting.
+  </div>
 {% endif %}
 
 <div class="text-center">

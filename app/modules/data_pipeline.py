@@ -163,11 +163,13 @@ def run_pipeline_for_meeting(meeting_id):
             col for col in [
             "id",
             "rating",
+            "displayName.text",
+            "editorialSummary.text",
             "googleMapsUri",
             "websiteUri",
             "formattedAddress",
             "internationalPhoneNumber",
-            "primaryType",
+            "primaryTypeDisplayName.text", # Changed the type from primaryType to primaryTypeDisplayName.text
             "userRatingCount",
             "servesVegetarianFood",
             "paymentOptions.acceptsCashOnly",
@@ -180,7 +182,7 @@ def run_pipeline_for_meeting(meeting_id):
 
         # Filter the dataframe
         df_db = df[columns_to_keep].copy()
-
+        
         print(df_db["distance_from_centroid"])
 
         # Optional: rename to match your SQLAlchemy model field names
@@ -189,7 +191,9 @@ def run_pipeline_for_meeting(meeting_id):
             "websiteUri": "website_uri",
             "formattedAddress": "formatted_address",
             "internationalPhoneNumber": "international_phone_number",
-            "primaryType": "primary_type",
+            "primaryTypeDisplayName.text": "primary_type", # Changed the type from primaryType to primaryTypeDisplayName.text
+            "displayName.text": "restaurant_name",  # New column to save
+            "editorialSummary.text": "description",  # New column to save
             "userRatingCount": "user_rating_count",
             "servesVegetarianFood": "serves_vegetarian_food",
             "paymentOptions.acceptsCashOnly": "accepts_cash_only",
@@ -214,8 +218,11 @@ def run_pipeline_for_meeting(meeting_id):
                 print(f"⚠️ Could not convert end_price for restaurant {row['id']}: {row['end_price']}")
                 end_price = None
 
+            # Create a new Restaurants object
             restaurant = Restaurants(
             id=row["id"],
+            name=row["restaurant_name"], # New column to save
+            description=row["description"], # New column to save
             meeting_id=meeting.id,
             rating=Decimal(row["rating"]) if not pd.isna(row["rating"]) else None,
             google_maps_uri=row["google_maps_uri"],
@@ -232,9 +239,10 @@ def run_pipeline_for_meeting(meeting_id):
             distance_from_centroid=float(row["distance_from_centroid"]) if not pd.isna(row["distance_from_centroid"]) else None
         )
 
-        restaurant_objects.append(restaurant)
+            # Add the object to the list
+            restaurant_objects.append(restaurant)
 
-
+        # Check the number of restaurant objects created
         print(f"Number of restaurant objects created: {len(restaurant_objects)}")
 
         # Delete previous cached results
@@ -247,8 +255,6 @@ def run_pipeline_for_meeting(meeting_id):
         db.session.bulk_save_objects(restaurant_objects)
         db.session.commit()
         print(f"Inserted {len(restaurant_objects)} restaurant objects into the database.")
-
-# --- NEW CODE --- #
 
         # Create a Group object for the meeting
         group = Group(meeting_id)
@@ -270,6 +276,3 @@ def run_pipeline_for_meeting(meeting_id):
             print(f"Restaurant ID: {restaurant.id}, Composite Score: {restaurant.composite_score}")
 
         return {"status": "success", "meeting_id": meeting_id, "recommended_restaurants": recommended_restaurants}
-
-        # At the end, return the DataFrame or result
-        #return {"status": "success", "meeting_id": meeting_id, "locations": df_db}
