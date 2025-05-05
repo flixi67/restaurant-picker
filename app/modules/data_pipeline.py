@@ -7,7 +7,7 @@ from decimal import Decimal
 from datetime import datetime
 
 # Internal imports
-from app.models import db, Meetings, Members, Restaurants
+from app.models import db, Meetings, Members, Restaurants, RestaurantsMeetings
 from app.context import pipeline_context
 from app.modules.geocode import GoogleGeocodingAPI
 from app.modules.flatten import FlattenPlacesResponse
@@ -16,10 +16,12 @@ from app.matching_algorithm import Group, propose_restaurants
 
 def run_pipeline_for_meeting(meeting_id):
     with pipeline_context():
-        # Fetch from DB
+        # Fetch the meeting from the database
         meeting = db.session.query(Meetings).get(meeting_id)
+        # If there is no meeting, raise an error
         if meeting is None:
             raise ValueError(f"❌ No meeting found with ID: {meeting_id}")
+        # Fetch members' preferences
         member_addresses = db.session.query(Members.current_location).filter_by(meeting_id=meeting_id).all()
         locations = [addr[0] for addr in member_addresses]
         member_payments = db.session.query(Members.uses_card).filter_by(meeting_id=meeting_id).all()
@@ -53,8 +55,6 @@ def run_pipeline_for_meeting(meeting_id):
         
         # Create centroid
         centroid = MultiPoint(points).centroid
-
-        # Check if centroid is valid
         
         # Check if centroid is empty before accessing coordinates
         if centroid.is_empty:
@@ -95,7 +95,8 @@ def run_pipeline_for_meeting(meeting_id):
         flattener = FlattenPlacesResponse(full_scope=True)
 
         print("Actual status code from response:", response.status_code)
-        # Print response
+
+        # Print response and check for errors
         if response.status_code == 200:
             print("Success! Response data:")
             print(json.dumps(response.json(), indent=2))
@@ -206,52 +207,149 @@ def run_pipeline_for_meeting(meeting_id):
         restaurant_objects = []
 
         for _, row in df_db.iterrows():
-            try:
-                start_price = Decimal(row["start_price"]) if pd.notna(row["start_price"]) else None
-            except:
-                print(f"⚠️ Could not convert start_price for restaurant {row['id']}: {row['start_price']}")
-                start_price = None
 
-            try:
-                end_price = Decimal(row["end_price"]) if pd.notna(row["end_price"]) else None
-            except:
-                print(f"⚠️ Could not convert end_price for restaurant {row['id']}: {row['end_price']}")
-                end_price = None
+            # Check if the restaurant already exists in the database -- NEW CODE
+            existing_restaurant = Restaurants.query.filter_by(id=row["id"]).first()
 
-            # Create a new Restaurants object
-            restaurant = Restaurants(
-            id=row["id"],
-            name=row["restaurant_name"], # New column to save
-            description=row["description"], # New column to save
-            meeting_id=meeting.id,
-            rating=Decimal(row["rating"]) if not pd.isna(row["rating"]) else None,
-            google_maps_uri=row["google_maps_uri"],
-            website_uri=row["website_uri"],
-            formatted_address=row["formatted_address"],
-            international_phone_number=row["international_phone_number"],
-            primary_type=row["primary_type"],
-            user_rating_count=int(row["user_rating_count"]) if not pd.isna(row["user_rating_count"]) else None,
-            serves_vegetarian_food=bool(row["serves_vegetarian_food"]),
-            accepts_cash_only=bool(row["accepts_cash_only"]),
-            start_price=start_price,
-            end_price=end_price,
-            price_level=row["price_level"],
-            distance_from_centroid=float(row["distance_from_centroid"]) if not pd.isna(row["distance_from_centroid"]) else None
-        )
+            # If the restaurant does not exist, create a new one
+            if existing_restaurant is None:
 
-            # Add the object to the list
-            restaurant_objects.append(restaurant)
+                # Convert start_price to Decimal, handling NaN values
+                try:
+                    start_price = Decimal(row["start_price"]) if pd.notna(row["start_price"]) else None
+                except:
+                    print(f"⚠️ Could not convert start_price for restaurant {row['id']}: {row['start_price']}")
+                    start_price = None
+
+                # Convert end_price to Decimal, handling NaN values
+                try:
+                    end_price = Decimal(row["end_price"]) if pd.notna(row["end_price"]) else None
+                except:
+                    print(f"⚠️ Could not convert end_price for restaurant {row['id']}: {row['end_price']}")
+                    end_price = None
+
+                # Create a new Restaurants object
+                restaurant = Restaurants(
+                id=row["id"],
+                name=row["restaurant_name"], # New column to save
+                description=row["description"], # New column to save
+                # meeting_id=meeting.id, # Change into a list of meeting IDs # ATTEMPTED CHANGE
+                rating=Decimal(row["rating"]) if not pd.isna(row["rating"]) else None,
+                google_maps_uri=row["google_maps_uri"],
+                website_uri=row["website_uri"],
+                formatted_address=row["formatted_address"],
+                international_phone_number=row["international_phone_number"],
+                primary_type=row["primary_type"],
+                user_rating_count=int(row["user_rating_count"]) if not pd.isna(row["user_rating_count"]) else None,
+                serves_vegetarian_food=bool(row["serves_vegetarian_food"]),
+                accepts_cash_only=bool(row["accepts_cash_only"]),
+                start_price=start_price,
+                end_price=end_price,
+                price_level=row["price_level"],
+                #distance_from_centroid=float(row["distance_from_centroid"]) if not pd.isna(row["distance_from_centroid"]) else None
+                )
+                # Ensure meeting_id_list is initialized (if it's None)
+                if restaurant.meeting_id_list is None:
+                    restaurant.meeting_id_list = []  # Initialize as empty list
+
+                # Now append the meeting_id to the list of meeting IDs per restaurant
+                # restaurant.meeting_id_list.append(meeting_id)# ATTEMPTED CHANGE
+                meeting = db.session.query(Meetings).get(meeting_id)
+                restaurant.meeting_id_list.append(meeting)
+
+                # Add the object to the list
+                restaurant_objects.append(restaurant)
+
+                print(f"These are the restaurant objects made: {restaurant_objects}. There are {len(restaurant_objects)} restaurant objects in total.")
+
+                # ------ RestaurantsMeetings table ------
+
+                # Check if the combination already exists in the RestaurantsMeetings table
+                existing_associated_entry = db.session.query(RestaurantsMeetings).filter_by(
+                    restaurant_id=row["id"],
+                    meeting_id=meeting_id
+                ).first()
+
+                # Only insert if the combination does not exist
+                if existing_associated_entry is None:
+                    db.session.execute(
+                        RestaurantsMeetings.insert().values(
+                            restaurant_id=row["id"],
+                            meeting_id=meeting_id,
+                            composite_score=0,  # Placeholder for composite score
+                            distance_from_centroid=row["distance_from_centroid"]  # Store distance here
+                        )
+                    )
+                    print(f"Inserted new entry for restaurant {row['id']} and meeting {meeting_id} into RestaurantsMeetings.")
+                else:
+                    print(f"Entry for restaurant {row['id']} and meeting {meeting_id} already exists.")
+
+                db.session.flush()
 
         # Check the number of restaurant objects created
         print(f"Number of restaurant objects created: {len(restaurant_objects)}")
 
+# --- CHLOE'S EDIT: REMOVING THE FOLLOWING CHUNK AVOIDS EMPTY RESULTS UPON PAGE REFRESH (VER 1 OF THIS CODE) ---
         # Delete previous cached results
-        if db.session.query(Restaurants).filter_by(meeting_id=meeting_id).count() > 0:
-            db.session.query(Restaurants).filter_by(meeting_id=meeting_id).delete()
-            db.session.commit()
-            print(f"Deleted previous cached results for meeting ID: {meeting_id}")
+        # if db.session.query(Restaurants).filter_by(meeting_id=meeting_id).count() > 0: # Change to check if meeting_id_list includes the meeting_id
+        #     db.session.query(Restaurants).filter_by(meeting_id=meeting_id).delete() # Change to check if meeting_id_list includes the meeting_id
+        #     db.session.commit()
+        #     print(f"Deleted previous cached results for meeting ID: {meeting_id}")
+        # Query restaurants linked to this meeting_id
+        # # Delete Restaurants where meeting_id is in their meeting_id_list
+        # restaurants_to_delete = ( #ATTEMPTED CHANGE
+        #     db.session.query(Restaurants).join(RestaurantsMeetings)  # Join the association table (RestaurantsMeetings)
+        #     .filter(RestaurantsMeetings.c.meeting_id == meeting_id)  # Filter by the meeting_id in the association table
+        #     .all()
+        # )
+
+        # if restaurants_to_delete:
+        #     for restaurant in restaurants_to_delete:
+        #         db.session.delete(restaurant)
+        #     db.session.commit()
+        #     print(f"Deleted previous cached results for meeting ID: {meeting_id}")
+
+        # Delete Restaurants where meeting_id is in their meeting_id_list (attending a specific meeting)
+
+
+# --- CHLOE'S EDIT: REMOVING THE FOLLOWING CHUNK AVOIDS EMPTY RESULTS UPON PAGE REFRESH (VER 2 OF THIS CODE) ---
+        # restaurants_to_delete = (
+        #     db.session.query(Restaurants).filter(RestaurantsMeetings.c.meeting_id == meeting_id).all()
+        # )
+
+        # print(f"Restaurants to delete: {restaurants_to_delete}")
+
+        # if restaurants_to_delete:
+        #     for restaurant in restaurants_to_delete:
+        #         # Delete the association from the RestaurantsMeetings table first to avoid orphaned relationships
+        #         associations_to_delete = db.session.query(RestaurantsMeetings).filter_by(restaurant_id=restaurant.id, meeting_id=meeting_id).all()
+        #         if associations_to_delete:
+        #             print(f"Number of associations to delete: {len(associations_to_delete)}")
+        #             for association in associations_to_delete:
+        #                 db.session.execute(
+        #                     RestaurantsMeetings.delete().where(
+        #                         (RestaurantsMeetings.c.restaurant_id == restaurant.id) &
+        #                         (RestaurantsMeetings.c.meeting_id == meeting_id)
+        #                     )
+        #                 )
+        #             print(f"Deleted associations for restaurant {restaurant.id} and meeting {meeting_id}")
+        #         else:
+        #             print(f"No associations found for restaurant {restaurant.id} and meeting {meeting_id}")
+        #         # Now delete the actual restaurant entity
+        #         db.session.delete(restaurant)
+        #         print(f"Deleted restaurant {restaurant.id}")
+
+        #     db.session.commit()
+        #     print(f"Deleted previous cached restaurant results and associations for meeting ID: {meeting_id}")
+        # else:
+        #     print(f"No previous RestaurantsMeetings associations found for meeting ID: {meeting_id}")
+
+ # --- END: REMOVING THE ABOVE CHUNK AVOIDS EMPTY RESULTS UPON PAGE REFRESH  ---
 
         # Bulk insert
+        print(f"Number of restaurant objects to insert: {len(restaurant_objects)}")
+        print(f"Restaurant objects: {restaurant_objects}, {type(restaurant_objects)}")
+
         db.session.bulk_save_objects(restaurant_objects)
         db.session.commit()
         print(f"Inserted {len(restaurant_objects)} restaurant objects into the database.")
@@ -262,17 +360,10 @@ def run_pipeline_for_meeting(meeting_id):
         # Calculate group preferences based on the group object
         group_preferences = group.calculate_group_preferences()
 
-        # Fetch restaurant candidates
         # Fetch restaurant candidates for the current meeting
-        candidates = db.session.query(Restaurants).filter_by(meeting_id=meeting.id).all()
+        candidates = db.session.query(Restaurants).join(RestaurantsMeetings, Restaurants.id == RestaurantsMeetings.c.restaurant_id).filter(RestaurantsMeetings.c.meeting_id == meeting.id).all()
 
         # Pass the candidates and group preferences to the propose_restaurants function
         recommended_restaurants = propose_restaurants(candidates, group_preferences, meeting_id)
-
-        # Optionally: Do something with the recommended restaurants, like saving them to the DB or logging
-        print(f"Recommended restaurants for meeting {meeting_id}:")
-
-        for restaurant in recommended_restaurants:
-            print(f"Restaurant ID: {restaurant.id}, Composite Score: {restaurant.composite_score}")
 
         return {"status": "success", "meeting_id": meeting_id, "recommended_restaurants": recommended_restaurants}

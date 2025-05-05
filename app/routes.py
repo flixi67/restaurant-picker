@@ -2,7 +2,7 @@ import pandas as pd
 from flask import Blueprint, render_template, redirect,request
 
 # Internal imports
-from app.models import db, Meetings, Members, Restaurants, TopRestaurants
+from app.models import db, Meetings, Members, Restaurants, RestaurantsMeetings
 from app.modules.data_pipeline import run_pipeline_for_meeting
 from app.matching_algorithm import create_group_code, propose_restaurants
 
@@ -86,31 +86,6 @@ def join_meeting():
     # If it's a GET request, show the form
     return render_template("member_form.html")
 
-# @main_bp.route("/recommendations")
-# def recommendations_output():
-#     return render_template("restaurant_redirect.html")
-
-# @main_bp.route("/restaurant_preferences/<group_code>", methods=['GET', 'POST'])
-# def restaurant_preferences(group_code):
-#     if request.method == 'POST':
-#         try:
-#             candidates = pd.read_csv("cleaned_data.csv")
-           
-#             preferences = {
-#                 "cuisine_type": (request.form.get("cuisine"), 0.4),
-#                 "dietary": (request.form.get("dietary"), 0.3)
-#             }
-#             budget = float(request.form.get("budget", 20))
-           
-#             results = propose_restaurants(candidates, preferences, budget)
-#             return render_template("recommendations.html",
-#                                restaurants=results.head(10).to_dict('records'),
-#                                group_code=group_code)
-#         except Exception as e:
-#             return f"Error processing recommendations: {str(e)}", 400
-   
-#     return render_template("restaurant_form.html", group_code=group_code)
-
 @main_bp.route('/recommendations', methods=['GET', 'POST'])
 def recommendations_redirect():
     if request.method == 'POST':
@@ -133,7 +108,7 @@ def recommendations_output(meeting_id):
     try:
         run_pipeline_for_meeting(meeting_id)
         print("✨ Pipeline completed successfully!")
-        results = Restaurants.query.filter_by(meeting_id=meeting_id).all()
+        results = db.session.query(Restaurants).join(RestaurantsMeetings).filter(RestaurantsMeetings.c.meeting_id == meeting_id).all() # ATTEMPTED CHANGE
         print(f"✨ Found {len(results)} results!")
         
         return render_template(

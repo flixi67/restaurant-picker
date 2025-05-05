@@ -89,9 +89,11 @@
             <th>Cuisine</th>
             <td>{{ r.primary_type }}</td>
           </tr>
-          {% if r.end_price %}
+          <!-- Check if end_price was provided -->
+          {% if r.end_price %} 
+          <!-- If so, show the budget -->
           <tr>
-            <th>€</th>
+            <th>Budget (€)</th>
             <td>{{ r.end_price|round(0) }}</td>
           </tr>
           {% endif %}

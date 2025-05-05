@@ -1,21 +1,16 @@
-from app.models import db, Meetings, Members, Restaurants
+from app.models import db, Meetings, Members, Restaurants, RestaurantsMeetings
 from app.context import pipeline_context
-from app.modules.geocode import GoogleGeocodingAPI
 
-import numpy as np
 import pandas as pd
-import requests
-import datetime
-import wtforms
 import random
-import geopandas
 
-# Function: Create and return a random group code
+# Debugging: Print the columns of RestaurantsMeetings
+print(RestaurantsMeetings.columns.keys())
+
 def create_group_code():
     """
     Inputs: None
-    Output: 6 digit code
-    Later: Add a list; only create a code that is not already in the list
+    Output: 6 digit meeting code that does not already exist in the database
     """
     while True:
         # Generate a random 6-digit number
@@ -25,22 +20,6 @@ def create_group_code():
         existing_codes = [code[0] for code in existing_codes]
         if code not in existing_codes:
             return code  # Return the code if it's unique
-
-# # Create a class for a single group member
-# class Member:
-#     def __init__(self, meeting_id):
-#         """
-#         preferences should be in the following format:
-
-#         preferences = {
-#             'rating': (min_rating, rating_weighting),
-#             'max_budget': (max_budget, budget_weighting),
-#             'dist_from_centroid': distance_weighting
-#         }
-#         """
-#         self.meeting_id = meeting_id
-
-    
 
 # Create a class for the group
 class Group:
@@ -118,6 +97,37 @@ class Group:
 
         return group_preferences
 
+def score_rating(restaurant, group_preferences):
+    """
+    Scores the restaurant based on its rating and group preferences.
+    Args:
+        restaurant: Restaurant object
+        group_preferences: {
+            'rating': ('4 | 5', 0.4)
+        }
+    Returns:
+        score: float
+    """
+    if restaurant.rating < group_preferences['rating'][0]:
+        return 0
+    else:
+        score = float(group_preferences['rating'][1]) * float(restaurant.rating / 5)
+        return score
+
+def score_distance(distance_from_centroid, group_preferences):
+    """
+    Scores the restaurant based on its distance from the centroid and group preferences.
+    Args:
+        distance_from_centroid: float
+        group_preferences: {
+            'dist': 0.4
+        }
+    Returns:
+        score: float
+    """
+    score = float(group_preferences['dist'] * (1 / (1 + distance_from_centroid))) # Example of inverse distance
+    return score
+
 def propose_restaurants(candidates, group_preferences, meeting_id):
     """
     Recommends restaurants with budget constraints and dietary options.
@@ -129,7 +139,7 @@ def propose_restaurants(candidates, group_preferences, meeting_id):
         group_preferences: {
             'dist':, 
             'rating': ('4 | 5', 0.4),
-            'max_budget_per_person': Maximum $$ per person (e.g., 20)
+            'max_budget_per_person': (Maximum $$ per person (e.g., 20) | 0.2)
         }
         meeting_id: The ID of the current meeting
 
@@ -137,18 +147,28 @@ def propose_restaurants(candidates, group_preferences, meeting_id):
         DataFrame sorted by composite score with budget filtering
     """
     with pipeline_context():
-        # Fetch from DB
-        candidates = db.session.query(Restaurants).filter_by(meeting_id=meeting_id).all()
-        #preferences = db.session.query(Members).filter_by(meeting_id=meeting_id).all()
-        
-        # Create outcome vector
+        #  Obtain potential restaurant candidates from the Restaurants database, and also the distance from centroid
+        # from the RestaurantsMeetings table
+        candidates = db.session.query(Restaurants, RestaurantsMeetings.c.distance_from_centroid
+            ).join(
+                RestaurantsMeetings, Restaurants.id == RestaurantsMeetings.c.restaurant_id
+            ).filter(
+                RestaurantsMeetings.c.meeting_id == meeting_id
+            ).order_by(Restaurants.id).all()
+
+
+        # Create scores list for candidate restaurants
         scores = []
 
         # Iterate through restaurants
-        for restaurant in candidates:
+        for restaurant, distance_from_centroid in candidates:
+            # Initalise score for each restaurant
             score = 0
 
             # 1. Budget constraint (hard filter + soft scoring)
+
+            # Can create a function for this
+
             # Check if the restaurant data has an end price
             if restaurant.end_price is None:
                 print(f"[❗] Restaurant {restaurant.id} has no end_price")
@@ -159,6 +179,8 @@ def propose_restaurants(candidates, group_preferences, meeting_id):
                         placeholder_price = 50
                         budget_score = 1 - ( placeholder_price / group_preferences['max_budget_per_person'][0])
                         score += float(group_preferences['max_budget_per_person'][1]) * float(budget_score)
+                    else:
+                        continue
                 else:
                     # If there is no end price, but there is a start price, we assume it is within budget
                     budget_score = 1 - ( restaurant.start_price / group_preferences['max_budget_per_person'][0])
@@ -172,30 +194,32 @@ def propose_restaurants(candidates, group_preferences, meeting_id):
                 score += float(group_preferences['max_budget_per_person'][1]) * float(budget_score)
 
             # 2. Rating (normalized 0-1 scale)
-            if restaurant.rating < group_preferences['rating'][0]:
-                continue
-            else:
-                score += float(group_preferences['rating'][1]) * float(restaurant.rating / 5)
+            score += score_rating(restaurant, group_preferences)
 
             # 3. Distance from centroid (closer = better)
-            #if 'distance_from_centroid' in restaurant:
-            score += float(group_preferences['dist'] * (1 / (1 + restaurant.distance_from_centroid)))  # Example: inverse distance
-
-            scores.append(score)
+            score += score_distance(distance_from_centroid, group_preferences)
+            
+            # Append the calculated score for the restaurant to the scores list
+            scores.append((restaurant,score))
 
         # Apply scoring and sort restaurants by composite score
-        for i, restaurant in enumerate(candidates):
-            restaurant.composite_score = scores[i]
 
-        # Sort by composite score in descending order
-        sorted_restaurants = sorted(candidates, key=lambda r: r.composite_score, reverse=True)
+        for restaurant, score in scores:
+            # Find the corresponding row in the RestaurantsMeetings table
+            restaurant_meeting_instance = db.session.query(RestaurantsMeetings).filter(
+                RestaurantsMeetings.c.restaurant_id == restaurant.id,
+                RestaurantsMeetings.c.meeting_id == meeting_id
+            ).first()
+            
+            if restaurant_meeting_instance:
+                # Update the composite_score for this specific restaurant-meeting relation
+                RestaurantsMeetings.composite_score = score
+        
+        db.session.commit()
+
+        sorted_restaurants = [restaurant for restaurant, _ in sorted(scores, key=lambda x: x[1], reverse=True)]
 
         return sorted_restaurants
-
-        # Apply scoring and filter
-        #candidates['composite_score'] = scores
-        #return candidates.sort_values('composite_score', ascending=False)
-
 
 """ ---- Functions that are no longer needed ----
 # Function: Take latitude and longitude, and create a tuple of coordinates
