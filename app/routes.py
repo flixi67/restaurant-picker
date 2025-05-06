@@ -1,10 +1,12 @@
 import pandas as pd
 from flask import Blueprint, render_template, redirect,request
+from datetime import datetime
 
 # Internal imports
 from app.models import db, Meetings, Members, Restaurants, RestaurantsMeetings
 from app.modules.data_pipeline import run_pipeline_for_meeting
 from app.matching_algorithm import create_group_code, propose_restaurants
+
 
 
 ### --- Define blueprints
@@ -24,6 +26,18 @@ def new_meeting():
         meeting_datetime = request.form['meetingdatetime']
         meeting_size = request.form['meetingsize']
         
+        # Convert meeting_datetime to datetime object
+        meeting_datetime_obj = datetime.strptime(meeting_datetime, '%Y-%m-%dT%H:%M')
+
+        # Get the current datetime
+        current_datetime = datetime.now()
+
+        # Check if the meeting time is in the future
+        if meeting_datetime_obj <= current_datetime:
+            error_message = "⚠️ Check the meeting time. It has to be after the present moment. We can't time travel!"
+            return render_template("meeting_form.html", error_message=error_message)
+
+
         # Generate the group code
         group_code = create_group_code()
 
@@ -59,6 +73,28 @@ def join_meeting():
         member_cash = request.form.get('membercash') == 'on' # If ticked, shows True. Otherwise False.
         member_card = request.form.get('membercard') == 'on'  # Will be True if 'on', False if not present
         member_veg = request.form.get('memberveggie') == 'on'
+
+        # Check if meeting is full
+        meeting = Meetings.query.filter_by(id=meeting_id).first()
+        if not meeting:
+            return render_template("error.html", message="Meeting not found.")
+
+        group_size = meeting.group_size
+        submitted_count = Members.query.filter_by(meeting_id=meeting_id).count()
+
+        # If the meeting is full, pass a flag to disable form
+        is_full = submitted_count >= group_size
+        if is_full:
+            return render_template("member_form.html", is_full=is_full)
+
+        # Collect the preferences for validation
+        prefs = [member_budget_preference, member_rating_preference, member_location_preference]
+        unique_prefs = set(prefs)
+
+        # Check if preferences are unique
+        if len(unique_prefs) != 3:
+            error_message = "Preferences must have unique values: 1, 2, and 3. Please try again."
+            return render_template("member_form.html", error_message=error_message)
 
         entered_member_data = Members(meeting_id = meeting_id,
                                       budget = member_max_budget,

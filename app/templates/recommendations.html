@@ -71,10 +71,16 @@
 </style>
 
 <div class="section-title">🍽️ Restaurant Suggestions</div>
-<p class="section-subtitle">Here are the best-matching options based on your preferences, based on {{ submitted_count }} out of {{ group_size }} members' data.</p>
+<p class="section-subtitle">Here are the best-matching options based on your preferences, based on {{ submitted_count }} out of {{ group_size }} members' data. The restaurants are ordered based on your group's preferences from highest to lowest fit.</p>
 
 
 {% if results %}
+  {% if results|length == 1 %}
+    <!-- Special message for only one result -->
+    <div class="alert alert-warning text-center" role="alert">
+      ⚠️ There is only one restaurant that matches the preferences. It may not fit your budget, but we included it because it was the only match. Please check to ensure it works for your group.
+    </div>
+  {% endif %}
   {% for r in results %}
   <!-- Loops through and displays a results table for each restaurant -->
   <h3>Restaurant {{ loop.index }}: <a href="{{ r.google_maps_uri }}" target="_blank">{{ r.name }}</a></h3>

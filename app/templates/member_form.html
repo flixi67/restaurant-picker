@@ -1,6 +1,7 @@
 <!-- member_form.html -->
 {% extends "layout.html" %}
 
+
 {% block content %}
 <h2 class="text-center my-4">Add Member Information</h2> 
 <form action="/join_meeting" method="POST">
@@ -10,7 +11,22 @@
             <input type="number" class="form-control" name="meetingcode" required min="100000" max="999999" placeholder="e.g. 123456">
         </div>
     </div>
+
     <h3 class="mt-4">Member Preferences</h3>
+
+    <!-- Display error message if preferences are not unique -->
+    {% if error_message %}
+    <div class="text-danger fw-bold mt-3">
+        {{ error_message }}
+    </div>
+    {% endif %}
+
+    {% if is_full %}
+    <div class="text-danger fw-bold mt-3">
+        The meeting is already full. You cannot add more members at this time. You can <a href="{{ url_for('main.new_meeting') }}" class="text-primary">make a new meeting!</a>
+    </div>
+    {% endif %}
+
     <table class="table table-bordered">
         <thead>
             <tr>
@@ -24,7 +40,7 @@
                 <td>Budget (€)</td>
                 <td><input type="number" class="form-control" name="memberbudget" min="0" required placeholder="100"></td>
                 <td>
-                    <select name="memberbudgetpreference" class="form-select" required>
+                    <select name="memberbudgetpreference" class="form-select" id="budgetPref" required>
                         <option value="1">1</option>
                         <option value="2">2</option>
                         <option value="3">3</option>
@@ -35,7 +51,7 @@
                 <td>Minimum Rating (out of 5)</td>
                 <td><input type="number" class="form-control" name="memberminrating" min="0" max="5.0" step="0.1" required placeholder="3"></td>
                 <td>
-                    <select name="ratingpreference" class="form-select" required>
+                    <select name="ratingpreference" class="form-select" id="ratingPref" required>
                         <option value="1">1</option>
                         <option value="2">2</option>
                         <option value="3">3</option>
@@ -46,7 +62,7 @@
                 <td>My Location</td>
                 <td><input type="text" class="form-control" name="memberloc" required placeholder="e.g. Friedrichstraße 180, 10117 Berlin, Germany"></td>
                 <td>
-                    <select name="restaurantslocation" class="form-select" required>
+                    <select name="restaurantslocation" class="form-select" id="locationPref" required>
                         <option value="1">1</option>
                         <option value="2">2</option>
                         <option value="3">3</option>
@@ -74,4 +90,5 @@
 
     <button type="submit" class="btn btn-success mt-4">Add Member</button>
 </form>
+
 {% endblock %}
