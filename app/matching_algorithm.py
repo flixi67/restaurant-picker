@@ -2,7 +2,9 @@ from app.models import db, Meetings, Members, Restaurants, RestaurantsMeetings
 from app.context import pipeline_context
 
 import pandas as pd
+import numpy as np
 import random
+from sqlalchemy import update
 
 # Debugging: Print the columns of RestaurantsMeetings
 print(RestaurantsMeetings.columns.keys())
@@ -130,96 +132,115 @@ def score_distance(distance_from_centroid, group_preferences):
 
 def propose_restaurants(candidates, group_preferences, meeting_id):
     """
-    Recommends restaurants with budget constraints and dietary options.
-    Looks at restaurants that were given from data_pipeline.py and filters them
-    based on group preferences.
-    
-    Args:
-        candidates: DataFrame of restaurants from spatial filtering
-        group_preferences: {
-            'dist':, 
-            'rating': ('4 | 5', 0.4),
-            'max_budget_per_person': (Maximum $$ per person (e.g., 20) | 0.2)
-        }
-        meeting_id: The ID of the current meeting
-
-    Returns:
-        DataFrame sorted by composite score with budget filtering
+    Recommends restaurants with budget constraints and dietary options using TOPSIS ranking.
     """
     with pipeline_context():
-        #  Obtain potential restaurant candidates from the Restaurants database, and also the distance from centroid
-        # from the RestaurantsMeetings table
-        candidates = db.session.query(Restaurants, RestaurantsMeetings.c.distance_from_centroid
-            ).join(
-                RestaurantsMeetings, Restaurants.id == RestaurantsMeetings.c.restaurant_id
-            ).filter(
-                RestaurantsMeetings.c.meeting_id == meeting_id
-            ).order_by(Restaurants.id).all()
+        # Fetch candidate restaurants with associated distances
+        candidates = db.session.query(
+            Restaurants, 
+            RestaurantsMeetings.c.distance_from_centroid
+        ).join(
+            RestaurantsMeetings, Restaurants.id == RestaurantsMeetings.c.restaurant_id
+        ).filter(
+            RestaurantsMeetings.c.meeting_id == meeting_id
+        ).order_by(Restaurants.id).all()
 
+        # Prepare storage for TOPSIS inputs
+        topsis_matrix = []
+        valid_restaurants = []
 
-        # Create scores list for candidate restaurants
-        scores = []
-
-        # Iterate through restaurants
         for restaurant, distance_from_centroid in candidates:
-            # Initalise score for each restaurant
-            score = 0
+            score_components = {}
 
-            # 1. Budget constraint (hard filter + soft scoring)
-
-            # Can create a function for this
-
-            # Check if the restaurant data has an end price
+            # --- Handle budget filtering ---
             if restaurant.end_price is None:
-                print(f"[❗] Restaurant {restaurant.id} has no end_price")
-                # If there is no end price, and there is only one candidate, we still include it
                 if restaurant.start_price is None:
                     if len(candidates) == 1:
-                        print("Only one restaurant candidate with no end_price, therefore including it.")
-                        placeholder_price = 50
-                        budget_score = 1 - ( placeholder_price / group_preferences['max_budget_per_person'][0])
-                        score += float(group_preferences['max_budget_per_person'][1]) * float(budget_score)
+                        price = 50  # fallback for one restaurant with no price
                     else:
-                        continue
+                        continue  # skip if no price and not the only option
                 else:
-                    # If there is no end price, but there is a start price, we assume it is within budget
-                    budget_score = 1 - ( restaurant.start_price / group_preferences['max_budget_per_person'][0])
-                    score += float(group_preferences['max_budget_per_person'][1]) * float(budget_score)
-            # If the restaurant has an end price, and it exceeds the group's budget, then skip it
-            elif restaurant.end_price > group_preferences['max_budget_per_person'][0]:
-                continue
+                    price = restaurant.start_price
             else:
-                # If it is within budget, then calculate the score
-                budget_score = 1 - (restaurant.end_price / group_preferences['max_budget_per_person'][0])
-                score += float(group_preferences['max_budget_per_person'][1]) * float(budget_score)
+                price = restaurant.end_price
 
-            # 2. Rating (normalized 0-1 scale)
-            score += score_rating(restaurant, group_preferences)
+            if price > group_preferences['max_budget_per_person'][0]:
+                continue  # exclude over-budget
 
-            # 3. Distance from centroid (closer = better)
-            score += score_distance(distance_from_centroid, group_preferences)
-            
-            # Append the calculated score for the restaurant to the scores list
-            scores.append((restaurant,score))
+            # --- Scoring Components ---
+            score_components['norm_budget'] = 1 - (price / group_preferences['max_budget_per_person'][0])
+            score_components['norm_rating'] = (restaurant.rating or 0) / 5
+            score_components['norm_dist'] = 1 / (1 + distance_from_centroid)
 
-        # Apply scoring and sort restaurants by composite score
+            # Append for TOPSIS processing
+            topsis_matrix.append([
+                float(score_components['norm_rating']),
+                float(score_components['norm_budget']),
+                float(score_components['norm_dist'])
+            ])
+            valid_restaurants.append((restaurant, distance_from_centroid))
 
-        for restaurant, score in scores:
-            # Find the corresponding row in the RestaurantsMeetings table
+        if not topsis_matrix:
+            return []
+
+        # --- TOPSIS calculation ---
+        import numpy as np
+
+        matrix = np.array(topsis_matrix)
+        weights = np.array([
+            group_preferences['rating'][1],
+            group_preferences['max_budget_per_person'][1],
+            group_preferences['dist']
+        ])
+
+        norm = np.linalg.norm(matrix, axis=0)
+        norm_matrix = matrix / norm
+        weighted_matrix = norm_matrix * weights
+
+        ideal = np.max(weighted_matrix, axis=0)
+        anti_ideal = np.min(weighted_matrix, axis=0)
+
+        dist_to_ideal = np.linalg.norm(weighted_matrix - ideal, axis=1)
+        dist_to_anti_ideal = np.linalg.norm(weighted_matrix - anti_ideal, axis=1)
+
+        closeness = dist_to_anti_ideal / (dist_to_ideal + dist_to_anti_ideal)
+
+        # Combine restaurants with their TOPSIS score
+        ranked = list(zip(valid_restaurants, closeness))
+
+        # --- Update database ---
+        for ((restaurant, _), score) in ranked:
             restaurant_meeting_instance = db.session.query(RestaurantsMeetings).filter(
                 RestaurantsMeetings.c.restaurant_id == restaurant.id,
                 RestaurantsMeetings.c.meeting_id == meeting_id
             ).first()
-            
+
             if restaurant_meeting_instance:
-                # Update the composite_score for this specific restaurant-meeting relation
-                RestaurantsMeetings.composite_score = score
-        
+                # Save TOPSIS score as composite score
+                db.session.execute(update(RestaurantsMeetings).where(
+                    RestaurantsMeetings.c.restaurant_id == restaurant.id,
+                    RestaurantsMeetings.c.meeting_id == meeting_id
+                    )
+                    .values(composite_score=score))
+
+                # Safely get description
+                try:
+                    description = restaurant.description
+                except AttributeError:
+                    description = ""
+
+                # Optional: save description if your model supports it
+                # restaurant_meeting_instance.description = description
+
         db.session.commit()
 
-        sorted_restaurants = [restaurant for restaurant, _ in sorted(scores, key=lambda x: x[1], reverse=True)]
+        # Return restaurants sorted by TOPSIS score (highest = best)
+        sorted_restaurants = [
+            restaurant for ((restaurant, _), _) in sorted(ranked, key=lambda x: x[1], reverse=True)
+        ]
 
         return sorted_restaurants
+
 
 """ ---- Functions that are no longer needed ----
 # Function: Take latitude and longitude, and create a tuple of coordinates

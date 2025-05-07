@@ -125,10 +125,11 @@ def run_pipeline_for_meeting(meeting_id):
                 raise NameError("No information on vegetarian options in database. Not filtering for dietary restrictions, please manually check.")
 
         # 3. Filter for debit card support if requested
-        if card == 1 and 'paymentOptions.acceptsDebitCards' in df.columns:
-            df = df[df['paymentOptions.acceptsDebitCards'] == True]
+        if card == 1 and 'paymentOptions.acceptsCreditCards' in df.columns:
+            df = df[df['paymentOptions.acceptsCreditCards'] == True]
         else:
             raise NameError("No information on payment options in database. Not filtering for card payments, please manually check.")
+        
         # 4. Filter open places
 
         # print([col for col in df.columns if "regularOpeningHours.periods" in col])
@@ -186,6 +187,9 @@ def run_pipeline_for_meeting(meeting_id):
         
         print(df_db["distance_from_centroid"])
 
+        if "editorialSummary.text" not in df.columns:
+            df["editorialSummary.text"] = ""  # Create empty column if missing
+
         # Optional: rename to match your SQLAlchemy model field names
         df_db.rename(columns={
             "googleMapsUri": "google_maps_uri",
@@ -232,7 +236,7 @@ def run_pipeline_for_meeting(meeting_id):
                 restaurant = Restaurants(
                 id=row["id"],
                 name=row["restaurant_name"], # New column to save
-                description=row["description"], # New column to save
+                description = row.get("description", ""), # New column to save
                 # meeting_id=meeting.id, # Change into a list of meeting IDs # ATTEMPTED CHANGE
                 rating=Decimal(row["rating"]) if not pd.isna(row["rating"]) else None,
                 google_maps_uri=row["google_maps_uri"],
@@ -241,11 +245,11 @@ def run_pipeline_for_meeting(meeting_id):
                 international_phone_number=row["international_phone_number"],
                 primary_type=row["primary_type"],
                 user_rating_count=int(row["user_rating_count"]) if not pd.isna(row["user_rating_count"]) else None,
-                serves_vegetarian_food=bool(row["serves_vegetarian_food"]),
+                serves_vegetarian_food = bool(row.get("serves_vegetarian_food", False)),
                 accepts_cash_only=bool(row["accepts_cash_only"]),
                 start_price=start_price,
                 end_price=end_price,
-                price_level=row["price_level"],
+                price_level = row.get("price_level", None),
                 #distance_from_centroid=float(row["distance_from_centroid"]) if not pd.isna(row["distance_from_centroid"]) else None
                 )
                 # Ensure meeting_id_list is initialized (if it's None)
