@@ -10,31 +10,39 @@
 
     {% block extra_css %}{% endblock %}
 
+    
+
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: rgb(11, 130, 124);
-            font-family: 'Lusitana', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-            font-weight: 400;
-        }
+
+body {
+    margin: 0;
+    padding: 0;
+    background: #0b827c; /* solid teal background around the app */
+    font-family: 'Lusitana', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    font-weight: 400;
+}
 
         /* App-like wrapper */
         .app-wrapper {
-            background: linear-gradient(to right, #00bcd4, #8bc34a);
-            width: 100%;
-            max-width: 420px;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 0;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
-        }
+    background-image: url("{{ url_for('static', filename='Front-End_images/FIDN_background2.png') }}");
+    background-repeat: no-repeat;
+    background-position: top center;
+    background-size: contain;
+    background-color: white; 
+    
+    width: 100%;
+    max-width: 420px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+}
 
         .navbar-custom {
             background-color: #0b827c;
@@ -103,10 +111,6 @@
             </div>
         </nav>
 
-        <!-- Header image -->
-        <img src="{{ url_for('static', filename='Front-End_images/Icon.png') }}"
-             alt="Meeting Illustration"
-             class="header-img">
 
         <!-- Main page content -->
         <div class="content-container">
