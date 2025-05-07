@@ -18,10 +18,18 @@
 
 <h2 style="color: #ffbd59; font-size: 24px; font-weight: bold;">Create a New Meeting</h2>
 
+<!-- Display error message if any -->
+{% if error_message %}
+    <div class="text-danger mt-3">
+        {{ error_message }}
+    </div>
+{% endif %}
+
 <form action="/new_meeting" method="POST" style="max-width: 350px; margin: 0 auto;">
     <div style="margin-bottom: 1rem;">
         
         <!-- Header Image -->
+         <br>
         <img src="{{ url_for('static', filename='Front-End_images/Chef_cooking.png') }}"
              alt="Meeting Illustration"
              style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 20px;">
