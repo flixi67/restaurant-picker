@@ -72,6 +72,18 @@ def run_pipeline_for_meeting(meeting_id):
             print("Success! Response data:")
             df = flattener.flatten(response.json())
             df_original = df.copy(deep=True)
+            # filter restaurants that are open at the meeting time
+            print(f"Checking restaurants open at meeting time: {meeting_time}")
+            df['is_open'] = df.apply(lambda row: is_open_at_time(row, meeting_time), axis=1)
+            open_count = df['is_open'].sum()
+            total_count = len(df)
+            print(f"Found {open_count} of {total_count} restaurants open at meeting time")
+            # Only filter if we have at least one open restaurant
+            if open_count > 0:
+                df = df[df['is_open'] == True]
+                print(f"Filtered to {len(df)} open restaurants")
+            else:
+                print("WARNING: No open restaurants found! Skipping open hours filtering.")                        
         else:
             print(f"Error {response.status_code}: {response.text}")
             return
