@@ -138,18 +138,6 @@ def run_pipeline_for_meeting(meeting_id):
 
         df['distance_from_centroid'] = df.apply(calc_distance, axis=1)
 
-        excluded = df_original[~df_original['id'].isin(df['id'])]
-        if not excluded.empty:
-            print("\n🚫 Excluded rows (filtered out):")
-            print(
-                excluded[[
-                    "displayName.text",
-                    "servesVegetarianFood",
-                    "paymentOptions.acceptsCreditCards",
-                    "businessStatus"
-                ]]
-            )
-
         columns_to_keep = [
             col for col in [
                 "id", "rating", "displayName.text", "editorialSummary.text", "googleMapsUri",
