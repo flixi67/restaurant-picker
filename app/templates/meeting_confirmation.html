@@ -1,0 +1,17 @@
+{% extends "meeting_form.html" %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Confirmation</title>
+</head>
+<body>
+    <h2>Meeting Created Successfully</h2>
+    <p>Meeting Date and Time: {{ meeting_datetime }}</p>
+    <p>Meeting Size: {{ meeting_size }}</p>
+    <p>Group Code: {{ group_code }}</p>
+</body>
+</html>
+
+{% endblock %}

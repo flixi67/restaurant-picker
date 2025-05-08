@@ -1,0 +1,23 @@
+{% extends "member_form.html" %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Confirmation</title>
+</head>
+<body>
+    <h2>Member Added Successfully</h2>
+    <p>Your Group's Code: {{ meeting_id }}</p>
+    <p>Your Current Location: {{ member_current_location }}</p>
+    <p>Your Max Budget: {{ member_budget }}</p>
+    <!-- 
+    Add confirmation of their details
+
+    <p>Meeting Date and Time: {{ meeting_datetime }}</p>
+    <p>Meeting Size: {{ meeting_size }}</p>
+    <p>Group Code: {{ group_code }}</p> -->
+</body>
+</html>
+
+{% endblock %}

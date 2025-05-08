@@ -1,0 +1,133 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+  .section-title {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+  }
+
+  .section-subtitle {
+    text-align: center;
+    color: #6c757d;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+
+  .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+
+  th {
+    background-color: #0b827c;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+    white-space: nowrap;
+  }
+
+  .alert-warning {
+    font-size: 14px;
+    margin-top: 12px;
+    margin-bottom: 16px;
+    padding: 12px;
+  }
+
+  .btn-back {
+    font-size: 14px;
+    padding: 10px 20px;
+  }
+
+  h3 {
+      font-family: sans-serif;
+      font-size: 1.5rem;
+      color: #04498d;
+      background-color: #f1f1f1;
+      padding: 10px 15px;
+      margin-top: 30px;
+      border-left: 6px solid #0064e6;
+      border-radius: 4px;
+    }
+</style>
+
+<div class="section-title">🍽️ Restaurant Suggestions</div>
+<p class="section-subtitle">Here are the best-matching options based on your preferences, based on {{ submitted_count }} out of {{ group_size }} members' data. The restaurants are ordered based on your group's preferences from highest to lowest fit.</p>
+
+
+{% if results %}
+  {% if results|length == 1 %}
+    <!-- Special message for only one result -->
+    <div class="alert alert-warning text-center" role="alert">
+      ⚠️ There is only one restaurant that matches the preferences. It may not fit your budget, but we included it because it was the only match. Please check to ensure it works for your group.
+    </div>
+  {% endif %}
+  {% for r in results %}
+  <!-- Loops through and displays a results table for each restaurant -->
+  <h3>Restaurant {{ loop.index }}: <a href="{{ r.google_maps_uri }}" target="_blank">{{ r.name }}</a></h3>
+  <div class="table-wrapper">
+      <table>
+        <tbody>
+          <tr>
+            <th>Location</th>
+            <td>{{ r.formatted_address }}</td>
+          </tr>
+          <tr>
+            <th>Cuisine</th>
+            <td>{{ r.primary_type }}</td>
+          </tr>
+          <!-- Check if end_price was provided -->
+          {% if r.end_price %} 
+          <!-- If so, show the budget -->
+          <tr>
+            <th>Budget (€)</th>
+            <td>{{ r.end_price|round(0) }}</td>
+          </tr>
+          {% endif %}
+          <tr>
+            <th>Cash Only</th>
+            <td>{{ 'Yes' if r.accepts_cash_only else 'No' }}</td>
+          </tr>
+          <tr>
+            <th>Vegetarian</th>
+            <td>{{ 'Yes' if r.serves_vegetarian_food else 'No' }}</td>
+          </tr>
+          {% if r.description %}
+          <tr>
+            <th>Description</th>
+            <td>{{ r.description }}</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="alert alert-warning text-center" role="alert">
+    😔 No restaurant matches found for this meeting.
+  </div>
+{% endif %}
+
+<div class="text-center">
+  <a href="/" class="btn btn-outline-primary btn-back">⬅️ Back to Home</a>
+</div>
+{% endblock %}

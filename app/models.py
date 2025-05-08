@@ -10,7 +10,6 @@ class Meetings(db.Model):
     __tablename__ = 'meetings'
 
     id = db.Column(db.String(12), primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
     datetime = db.Column(db.Text, nullable=False)
     group_size = db.Column(db.Integer)  # CHECK constraint: group_size > 0 should be handled in application or migration
     created_at = db.Column(db.Text, default=dt.datetime.utcnow)
@@ -18,11 +17,21 @@ class Meetings(db.Model):
     def __repr__(self):
         return f"<Meeting {self.id}>"
 
+# This is the NEW association table for the many-to-many relationship between Restaurants and Meetings
+RestaurantsMeetings = db.Table('restaurants_meetings',
+    db.Column('restaurant_id', db.String, db.ForeignKey('restaurants.id'), primary_key=True),
+    db.Column('meeting_id', db.Integer, db.ForeignKey('meetings.id'), primary_key=True),
+    db.Column('distance_from_centroid', db.Float),
+    db.Column('composite_score', db.Float)
+)
 class Restaurants(db.Model):
     __tablename__ = 'restaurants'
 
     id = db.Column(db.String(100), primary_key=True)
-    meeting_id = db.Column(db.String, db.ForeignKey('meetings.id', ondelete='CASCADE'), nullable=False)
+    name = db.Column(db.String(100), nullable=False) # New column
+    description = db.Column(db.Text) # New column
+    # meeting_id = db.Column(db.String, db.ForeignKey('meetings.id', ondelete='CASCADE'), nullable=False) # Turn into a list
+    meeting_id_list = db.relationship("Meetings", secondary=RestaurantsMeetings, backref="restaurants")
     rating = db.Column(db.Numeric(3, 2), nullable=True)
     google_maps_uri = db.Column(db.String(200), nullable=False)
     website_uri = db.Column(db.String(200))
@@ -35,6 +44,8 @@ class Restaurants(db.Model):
     start_price = db.Column(db.Numeric)
     end_price = db.Column(db.Numeric)
     price_level = db.Column(db.String(50))
+    #distance_from_centroid = db.Column(db.Float) # Moved to association table
+    #composite_score = db.Column(db.Float) # Moved to association table
 
     def __repr__(self):
         return f"<Restaurant {self.id}>"
@@ -48,24 +59,12 @@ class Members(db.Model):
     uses_cash = db.Column(db.Boolean, default=False)
     uses_card = db.Column(db.Boolean, default=False)
     is_vegetarian = db.Column(db.Boolean, default=False)
-    location_preference = db.Column(db.String(100))
+    current_location = db.Column(db.String(100))
+    min_rating = db.Column(db.Integer)
+    rating_preference = db.Column(db.Integer)
+    location_preference = db.Column(db.Integer)
+    budget_preference = db.Column(db.Integer)
 
     # Manual check: uses_cash OR uses_card should be enforced in validation logic
     def __repr__(self):
         return f"<Member {self.id}>"
-
-class TopRestaurants(db.Model):
-    __tablename__ = 'top_restaurants'
-
-    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid4()))
-    meeting_id = db.Column(db.String, db.ForeignKey('meetings.id', ondelete='CASCADE'), nullable=False)
-    restaurant_id = db.Column(db.String, db.ForeignKey('restaurants.id', ondelete='CASCADE'), nullable=False)
-    score = db.Column(db.Float)
-    ranking = db.Column(db.Integer)
-
-    __table_args__ = (
-        db.UniqueConstraint('meeting_id', 'restaurant_id', name='unique_meeting_restaurant'),
-    )
-
-    def __repr__(self):
-        return f"<TopRestaurant M={self.meeting_id}, R={self.restaurant_id}, Score={self.score}, Rank={self.rank}>"
