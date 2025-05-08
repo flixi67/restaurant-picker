@@ -1,20 +1,68 @@
-<!-- member_form.html -->
 {% extends "layout.html" %}
 
+{% block extra_css %}
+<style>
+
+    form {
+        width: 100%;
+
+    }
+
+    .container,
+    .content-container {
+        width: 100%;
+        padding: 0 16px;
+    }
+    table {
+        width: 100%;
+    }
+    table th, table td {
+        vertical-align: middle;
+        padding: 4px 6px;
+        line-height: 1.2;
+    }
+    input.form-control,
+    select.form-select {
+        padding: 6px 8px;
+        font-size: 0.85rem;
+        line-height: 1.2;
+    }
+    .form-check {
+        width: 100%;
+    }
+    body {
+        font-size: 0.9rem;
+    }
+
+    h2, h3 {
+        font-size: 1.2rem;
+    }
+
+    label, th, td, input, select, .form-check-label {
+        font-size: 0.9rem;
+    }
+
+    .btn {
+        font-size: 0.9rem;
+    }
+
+  
+
+</style>
+{% endblock %}
 
 {% block content %}
 <h2 class="text-center my-4">Add Member Information</h2> 
 <form action="/join_meeting" method="POST">
     <div class="row g-3 justify-content-center">
-        <div class="col-md-5">
-            <label class="form-label text-center d-block" >Meeting Code</label>
+        <div class="col-md-14">
+            <label class="form-label text-center d-block">Meeting Code</label>
             <input type="number" class="form-control" name="meetingcode" required min="100000" max="999999" placeholder="e.g. 123456">
         </div>
     </div>
 
     <h3 class="mt-4">Member Preferences</h3>
 
-    <!-- Display error message if preferences are not unique -->
     {% if error_message %}
     <div class="text-danger fw-bold mt-3">
         {{ error_message }}
@@ -27,7 +75,7 @@
     </div>
     {% endif %}
 
-    <table class="table table-bordered">
+    <table class="table table-bordered mt-3">
         <thead>
             <tr>
                 <th>Preference</th>
@@ -90,5 +138,4 @@
 
     <button type="submit" class="btn btn-success mt-4">Add Member</button>
 </form>
-
 {% endblock %}
