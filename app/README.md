@@ -16,7 +16,7 @@ Once fetched, the data is cleaned and stored in a **relational database**, which
 The web interface then lets users:
 1. Submit their name, availability, and cuisine preferences  
 2. Get matched with others who have overlapping preferences  
-3. View recommended restaurants near the group’s geometric center  
+3. View recommended restaurants nearest to the central location determined based on preferred locations of all users in the group
 4. Confirm or decline the suggested plan via the dashboard
 
 ## Restaurant Ranking Algorithm: TOPSIS
