@@ -11,7 +11,7 @@ from app.models import db, Meetings, Members, Restaurants, RestaurantsMeetings
 from app.context import pipeline_context
 from app.modules.geocode import GoogleGeocodingAPI
 from app.modules.flatten import FlattenPlacesResponse
-from app.modules.is_open import is_open_at_time
+from app.modules.is_open import is_open
 from app.matching_algorithm import Group, propose_restaurants
 
 def run_pipeline_for_meeting(meeting_id):
@@ -73,17 +73,42 @@ def run_pipeline_for_meeting(meeting_id):
             df = flattener.flatten(response.json())
             df_original = df.copy(deep=True)
             # filter restaurants that are open at the meeting time
-            print(f"Checking restaurants open at meeting time: {meeting_time}")
-            df['is_open'] = df.apply(lambda row: is_open_at_time(row, meeting_time), axis=1)
-            open_count = df['is_open'].sum()
-            total_count = len(df)
-            print(f"Found {open_count} of {total_count} restaurants open at meeting time")
-            # Only filter if we have at least one open restaurant
-            if open_count > 0:
-                df = df[df['is_open'] == True]
-                print(f"Filtered to {len(df)} open restaurants")
+            print(f"Meeting time: {meeting_time}")
+            open_restaurants = []
+
+            for i, row in enumerate(df.to_dict('records')):
+                try:
+                    restaurant_name = row.get('displayName.text', f"Restaurant {i}")
+                    
+                    # Get weekday descriptions
+                    weekday_descriptions = row.get('regularOpeningHours.weekdayDescriptions')
+                    
+                    # Skip if no descriptions available
+                    if weekday_descriptions is None or not isinstance(weekday_descriptions, list):
+                        continue
+                        
+                    # Check if restaurant is open
+                    is_restaurant_open = is_open(
+                        weekday_descriptions,
+                        meeting_time.weekday(),
+                        meeting_time.hour,
+                        meeting_time.minute
+                    )
+                    
+                    if is_restaurant_open:
+                        open_restaurants.append(i)
+                        print(f"Restaurant open: {restaurant_name}")
+                        
+                except Exception as e:
+                    print(f"Error checking restaurant {i}: {e}")
+
+            # Filter the DataFrame to only include open restaurants
+            if open_restaurants:
+                print(f"Found {len(open_restaurants)} open restaurants")
+                df = df.iloc[open_restaurants].copy()
+                print(f"Filtered to {len(df)} restaurants that are open at meeting time")
             else:
-                print("WARNING: No open restaurants found! Skipping open hours filtering.")                        
+                print("No restaurants found open at meeting time. Keeping all restaurants.")                    
         else:
             print(f"Error {response.status_code}: {response.text}")
             return
